@@ -117,6 +117,19 @@
       margin-top: 20px;
     }
 
+    .nav-group-label {
+      margin: 14px 4px 2px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+
+    .nav-group-label:first-child {
+      margin-top: 0;
+    }
+
     .nav button {
       display: grid;
       grid-template-columns: 26px 1fr;
@@ -369,7 +382,7 @@
 
     table {
       width: 100%;
-      min-width: 720px;
+      min-width: 480px;
       border-collapse: collapse;
     }
 
@@ -546,6 +559,39 @@
       line-height: 1.55;
     }
 
+    /* Raw Gemini summary: capped + scrollable so it never dominates small screens. */
+    .raw-output {
+      white-space: pre-wrap;
+      max-height: 280px;
+      overflow: auto;
+      margin-top: 8px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fbfcf8;
+      padding: 12px;
+      color: #26343b;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    details.advanced > summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--accent);
+      list-style: none;
+    }
+
+    details.advanced > summary::-webkit-details-marker { display: none; }
+
+    details.advanced > summary::before {
+      content: "▸ ";
+    }
+
+    details.advanced[open] > summary::before {
+      content: "▾ ";
+    }
+
     .toast {
       position: fixed;
       left: 50%;
@@ -571,6 +617,21 @@
       padding: 20px;
     }
 
+    .notice {
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      border: 1px solid var(--line);
+      background: #fbfcf8;
+    }
+
+    .notice.warn {
+      border-color: #e6c66a;
+      background: #fdf6e3;
+      color: #6b5612;
+    }
+
     .sr-only {
       position: absolute;
       width: 1px;
@@ -592,8 +653,25 @@
         border-bottom: 1px solid var(--line);
       }
 
+      /* Compact horizontal-scrolling tab bar instead of a tall stacked menu. */
       .nav {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 8px;
+        margin-top: 12px;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .nav button {
+        width: auto;
+        white-space: nowrap;
+        min-height: 38px;
+      }
+
+      .nav-group-label {
+        display: none;
       }
 
       .layout {
@@ -615,8 +693,7 @@
       .grid.two,
       .grid.three,
       .grid.four,
-      .flow,
-      .nav {
+      .flow {
         grid-template-columns: 1fr;
       }
 
@@ -685,17 +762,22 @@
   <script>
     const STORAGE_KEY = "tile-planning-system-v2";
 
-    const navItems = [
-      ["overview", "O", "Overview"],
-      ["project", "P", "Project"],
-      ["ai", "A", "AI Pipeline"],
-      ["rooms", "R", "Rooms"],
-      ["materials", "M", "Materials"],
-      ["schedule", "S", "Schedule"],
-      ["weather", "W", "Weather"],
-      ["evaluation", "E", "Evaluation"],
-      ["simulation", "X", "Simulation"],
-      ["report", "T", "Report"]
+    // Grouped navigation: the estimation workflow in usage order, then research/thesis pages.
+    const navGroups = [
+      { label: "Workflow", items: [
+        ["overview", "O", "Overview"],
+        ["project", "P", "Project"],
+        ["ai", "A", "AI Pipeline"],
+        ["rooms", "R", "Rooms"],
+        ["materials", "M", "Materials"],
+        ["schedule", "S", "Schedule"],
+        ["weather", "W", "Weather"],
+        ["report", "T", "Report"]
+      ] },
+      { label: "Research", items: [
+        ["evaluation", "E", "Evaluation"],
+        ["simulation", "X", "Simulation"]
+      ] }
     ];
 
     const i18n = {
@@ -703,6 +785,8 @@
         "Research prototype": "研究原型",
         "AI-Assisted Tile Estimation Prototype": "AI 辅助瓷砖估算原型",
         "A thesis prototype comparing generative AI-assisted and conventional tiling estimation for Malaysian small contractors.": "用于比较 AI 辅助与传统瓷砖估算方法的论文原型，面向马来西亚小型承包商。",
+        "Workflow": "估算流程",
+        "Research": "研究 / 论文",
         "Overview": "总览",
         "Project": "项目",
         "AI Pipeline": "AI 流程",
@@ -1085,6 +1169,7 @@
         scale: 100,
         aiStatus: "Not run",
         aiDraft: [],
+        lastImportedCount: 0,
         acceptedInput: "PDF、图片、CAD 导出图、扫描图、表格或人工输入",
         preprocessingNote: "CAD/native model 文件需要先在后端转换成 PDF 或高分辨率 PNG，再交给 Gemini 分析。"
       },
@@ -1102,7 +1187,7 @@
         drawingPrompt: "Extract room names, room types, approximate floor areas, irregular shapes, columns, voids, and dimension warnings from the uploaded tiling drawing.",
         estimationPrompt: "Using validated room areas, tile size, wastage allowance, skirting, adhesive coverage, grout rate, labour productivity, and risk factors, compute material quantities and workflow duration.",
         workflowPrompt: "Generate a practical tiling workflow for a Malaysian small contractor: site measurement, surface preparation, procurement, dry layout, cutting, installation, curing, grouting, inspection, and handover.",
-        outputSummary: "未部署 Gemini 后端前，AI 识别不会真正工作。部署后端后会返回结构化 JSON，并进入人工复核。"
+        outputSummary: ""
       },
       site: {
         drawingQuality: "Mixed / site photo + scanned PDF",
@@ -1753,11 +1838,14 @@ This is not final evidence. It is a planning simulation that helps define the as
     }
 
     function renderNav() {
-      document.getElementById("nav").innerHTML = navItems.map(([id, icon, label]) => `
-        <button type="button" class="${state.activeView === id ? "active" : ""}" data-action="view" data-view="${id}">
-          <span class="nav-icon" aria-hidden="true">${icon}</span>
-          <span>${t(label)}</span>
-        </button>
+      document.getElementById("nav").innerHTML = navGroups.map(group => `
+        <p class="nav-group-label">${t(group.label)}</p>
+        ${group.items.map(([id, icon, label]) => `
+          <button type="button" class="${state.activeView === id ? "active" : ""}" data-action="view" data-view="${id}">
+            <span class="nav-icon" aria-hidden="true">${icon}</span>
+            <span>${t(label)}</span>
+          </button>
+        `).join("")}
       `).join("");
     }
 
@@ -1960,118 +2048,128 @@ This is not final evidence. It is a planning simulation that helps define the as
     function renderAI() {
       const totals = calculateTotals();
       const schedule = calculateSchedule(totals);
-      const draftRows = state.plan.aiDraft.length ? state.plan.aiDraft.map(item => `
+      const zh = state.language === "zh";
+      const uploaded = !!state.plan.fileName;
+      const isLocal = location.protocol === "file:";
+      const draftRows = state.plan.aiDraft.map(item => `
         <tr>
           <td>${h(item.name)}</td>
           <td>${h(t(item.roomType))}</td>
-          <td>${h(t(item.shape))}</td>
           <td>${fmt(item.area)} m2</td>
           <td><span class="tag ${item.confidence >= state.ai.confidenceThreshold ? "ok" : "warn"}">${percent(item.confidence)}</span></td>
         </tr>
-      `).join("") : `<tr><td colspan="5">${state.language === "zh" ? "还没有 AI 识别结果。请先上传图纸，然后点击 Gemini 识别图纸。" : "No AI result yet. Upload a drawing, then run Gemini analysis."}</td></tr>`;
+      `).join("");
 
       return `
-        ${renderHead(state.language === "zh" ? "AI 辅助识别流程" : "AI-assisted workflow", state.language === "zh" ? "上传图纸后调用 Gemini 后端识别房间、面积、风险，再送入人工复核。" : "Upload a drawing, call the Gemini backend, then send structured results to manual review.", `
-          <button class="btn primary" type="button" data-action="analyze-gemini">${state.language === "zh" ? "Gemini 识别图纸" : "Analyze with Gemini"}</button>
-          <button class="btn" type="button" data-action="import-ai" ${state.plan.aiDraft.length ? "" : "disabled"}>${state.language === "zh" ? "导入人工复核" : "Send to manual review"}</button>
-          <button class="btn warn" type="button" data-action="mock-ai">${state.language === "zh" ? "演示模拟" : "Demo simulation"}</button>
+        ${renderHead(zh ? "AI 识别图纸" : "AI drawing recognition", zh ? "上传图纸 → Gemini 识别 → 自动生成房间并进入复核。" : "Upload a drawing, run Gemini, rooms are created automatically for review.", `
+          <button class="btn primary" type="button" data-action="analyze-gemini">${zh ? "Gemini 识别图纸" : "Analyze with Gemini"}</button>
+          <button class="btn" type="button" data-action="mock-ai">${zh ? "演示模拟" : "Demo simulation"}</button>
         `)}
-        <div class="grid">
-          <div class="flow">
-            <div class="flow-step"><strong>${state.language === "zh" ? "1. 图纸输入" : "1. Drawing input"}</strong><span>${state.language === "zh" ? "上传 PDF/图片图纸，记录比例和项目资料。" : "Upload PDF/image floor plan, capture scale notes, and prepare drawing metadata."}</span></div>
-            <div class="flow-step"><strong>${state.language === "zh" ? "2. Gemini 识别" : "2. Gemini extraction"}</strong><span>${state.language === "zh" ? "识别房间、尺寸、不规则形状、柱位、空洞和风险区域。" : "Detect rooms, dimensions, irregular shapes, columns, voids, and warning zones."}</span></div>
-            <div class="flow-step"><strong>${state.language === "zh" ? "3. 结构化结果" : "3. Structured JSON"}</strong><span>${state.language === "zh" ? "把图纸证据转换成可复核的工程量 JSON。" : "Convert extracted drawing evidence into validated quantity take-off JSON."}</span></div>
-            <div class="flow-step"><strong>${state.language === "zh" ? "4. 人工复核" : "4. Human review"}</strong><span>${state.language === "zh" ? "低置信度房间必须由承包商确认后才能用于采购。" : "Contractor validates uncertain rooms before material and workflow outputs are trusted."}</span></div>
-            <div class="flow-step"><strong>${state.language === "zh" ? "5. 最终输出" : "5. Final output"}</strong><span>${state.language === "zh" ? "输出瓷砖、胶、成本、人工工期、天气风险和施工顺序。" : "Generate tile quantities, adhesive, cost, labour duration, risk, and workflow sequence."}</span></div>
-          </div>
-
-          <div class="layout">
-            <div class="grid">
-              <div class="panel">
-                <h3>${state.language === "zh" ? "Gemini 后端连接" : "Gemini backend connection"}</h3>
-                <div class="grid three">
-                  ${selectInput("Provider", "ai.provider", ["Gemini API"])}
-                  ${selectInput("AI mode", "ai.mode", ["Gemini vision + estimator", "Gemini PDF + estimator", "Manual extraction + Gemini planner"])}
-                  ${selectInput("Model target", "ai.modelName", ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3.1-flash-live-preview"])}
-                  ${selectInput("Prompt strategy", "ai.promptStrategy", ["Modular prompt chain", "Single prompt", "Few-shot prompt"])}
-                  ${input("Confidence threshold (%)", "ai.confidenceThreshold", "number", "1")}
-                  ${selectInput("API key placement", "ai.apiPlacement", ["Backend only", "Local prototype only"])}
-                  ${input(state.language === "zh" ? "后端 URL（空白则用 /api/analyze）" : "Backend URL (blank uses /api/analyze)", "ai.backendUrl")}
-                  <label>${t("Human review")}
-                    <span class="check-row"><input type="checkbox" data-bind="ai.humanReview" ${state.ai.humanReview ? "checked" : ""}> ${t("Required before final estimate")}</span>
-                  </label>
-                </div>
-                <div style="height:12px;"></div>
-                <ul class="assumption-list">
-                  <li><span>${state.language === "zh" ? "上传状态" : "Upload status"}</span><strong>${state.plan.fileName ? h(state.plan.fileName) : state.language === "zh" ? "未上传" : "Not uploaded"}</strong></li>
-                  <li><span>${state.language === "zh" ? "识别状态" : "Analysis status"}</span><strong>${h(statusText(state.ai.analysisStatus || state.plan.aiStatus))}</strong></li>
-                  <li><span>${t("Deployment")}</span><strong>${location.protocol === "file:" ? t("Local file, no same-origin backend") : t("Online page")}</strong></li>
-                </ul>
-              </div>
-              <div class="panel">
-                <div class="section-title">
-                  <h3>${t("File compatibility strategy")}</h3>
-                  <span class="tag ok">${t("Gemini-first")}</span>
-                </div>
-                <div class="table-wrap">
-                  <table>
-                    <thead><tr><th>${t("Input type")}</th><th>${t("Reality use")}</th><th>${t("Processing path")}</th></tr></thead>
-                    <tbody>
-                      <tr><td>${t("PDF drawing")}</td><td>${t("Common consultant/contractor file")}</td><td>${t("Gemini Files API / document processing")}</td></tr>
-                      <tr><td>${t("PNG/JPEG/WEBP/HEIC/HEIF")}</td><td>${t("Exported drawing or site phone photo")}</td><td>${t("Gemini image understanding")}</td></tr>
-                      <tr><td>${t("DWG/DXF/CAD/native model")}</td><td>${t("Designer or subcontractor source file")}</td><td>${t("Backend convert to PDF/PNG, then Gemini")}</td></tr>
-                      <tr><td>${t("Excel/CSV/manual list")}</td><td>${t("Conventional method baseline")}</td><td>${t("Parse as manual quantity input")}</td></tr>
-                      <tr><td>${t("Low-quality scan")}</td><td>${t("Real renovation condition")}</td><td>${t("Pre-clean image, ask Gemini for uncertainty flags, require human review")}</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <div class="panel">
-                <h3>${t("Prompt modules for backend prototype")}</h3>
-                <div class="grid">
-                  ${textInput("Drawing interpretation prompt", "ai.drawingPrompt", 3)}
-                  ${textInput("Material estimation prompt", "ai.estimationPrompt", 3)}
-                  ${textInput("Workflow planning prompt", "ai.workflowPrompt", 3)}
-                </div>
-              </div>
-              <div class="panel">
-                <div class="section-title">
-                  <h3>${t("Structured AI extraction draft")}</h3>
-                  <span class="tag warn">${h(t(state.plan.aiStatus))}</span>
-                </div>
-                <div class="table-wrap">
-                  <table>
-                    <thead><tr><th>${t("Room")}</th><th>${t("Type")}</th><th>${t("Shape")}</th><th>${t("Area")}</th><th>${t("Confidence")}</th></tr></thead>
-                    <tbody>${draftRows}</tbody>
-                  </table>
-                </div>
-                ${state.ai.lastRawResponse ? `<div style="height:12px;"></div><details><summary>${t("View raw Gemini summary")}</summary><div class="report">${h(state.ai.lastRawResponse)}</div></details>` : ""}
-              </div>
-            </div>
-            <aside class="panel">
-              <h3>${t("AI-assisted output preview")}</h3>
+        ${isLocal ? `<div class="notice warn">${zh ? "当前是本地 file:// 打开，无法调用 Gemini 后端。请用线上网址，或先点「演示模拟」预览流程。" : "Opened as a local file:// page — the Gemini backend cannot be called. Use the deployed URL, or click Demo simulation to preview."}</div>` : ""}
+        <div class="layout">
+          <div class="grid">
+            <div class="panel">
+              <h3>${zh ? "1. 识别图纸" : "1. Recognise the drawing"}</h3>
               <ul class="assumption-list">
-                <li><span>${t("Current net floor area")}</span><strong>${fmt(totals.floorArea)} m2</strong></li>
-                <li><span>${t("Tile boxes")}</span><strong>${fmt(totals.tileBoxes, 0)}</strong></li>
-                <li><span>${t("Material cost")}</span><strong>${money(totals.materialCost)}</strong></li>
-                <li><span>${state.language === "zh" ? "工期" : "Duration"}</span><strong>${fmt(schedule.finalDays, 1)} ${state.language === "zh" ? "天" : "days"}</strong></li>
-                <li><span>${t("Risk level")}</span><strong>${t(schedule.level)}</strong></li>
+                <li><span>${zh ? "上传状态" : "Upload status"}</span><strong>${uploaded ? h(state.plan.fileName) : (zh ? "未上传" : "Not uploaded")}</strong></li>
+                <li><span>${zh ? "识别状态" : "Analysis status"}</span><strong>${h(statusText(state.ai.analysisStatus || state.plan.aiStatus))}</strong></li>
+                <li><span>${t("Deployment")}</span><strong>${isLocal ? t("Local file, no same-origin backend") : t("Online page")}</strong></li>
               </ul>
-              <div style="height:14px;"></div>
-              ${textInput("AI output note", "ai.outputSummary", 6)}
-            </aside>
+              <div style="height:12px;"></div>
+              ${!uploaded ? `<button class="btn" type="button" data-action="view" data-view="project">${zh ? "先去上传图纸" : "Go upload a drawing"}</button>` : ""}
+              <p class="hint">${zh ? "识别成功后会自动生成房间并跳到「房间复核」，低置信度房间会标注「待复核」。" : "On success, rooms are created automatically and you jump to Room review; low-confidence rooms are flagged."}</p>
+            </div>
+
+            ${state.plan.aiDraft.length ? `
+            <div class="panel">
+              <div class="section-title">
+                <h3>${zh ? "识别草稿" : "Recognition draft"}</h3>
+                <span class="tag warn">${h(t(state.plan.aiStatus))}</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>${t("Room")}</th><th>${t("Type")}</th><th>${t("Area")}</th><th>${t("Confidence")}</th></tr></thead>
+                  <tbody>${draftRows}</tbody>
+                </table>
+              </div>
+              <div style="height:12px;"></div>
+              <button class="btn primary" type="button" data-action="import-ai">${zh ? "生成房间并复核" : "Create rooms and review"}</button>
+            </div>` : (state.plan.lastImportedCount ? `
+            <div class="panel">
+              <h3>${zh ? "最近识别" : "Last recognition"}</h3>
+              <p class="hint">${zh ? `上次识别已生成 ${state.plan.lastImportedCount} 个房间。` : `${state.plan.lastImportedCount} room(s) created last time.`}</p>
+              <button class="btn" type="button" data-action="view" data-view="rooms">${zh ? "去房间复核" : "Open Room review"}</button>
+            </div>` : "")}
+
+            <details class="panel advanced">
+              <summary>${zh ? "高级 / 后端与论文设置" : "Advanced / backend & research settings"}</summary>
+              <div style="height:12px;"></div>
+              <div class="grid two">
+                ${input(zh ? "模型名（如 gemini-3.5-flash）" : "Model (e.g. gemini-3.5-flash)", "ai.modelName")}
+                ${input("Confidence threshold (%)", "ai.confidenceThreshold", "number", "1")}
+                ${input(zh ? "后端 URL（空白则用 /api/analyze）" : "Backend URL (blank uses /api/analyze)", "ai.backendUrl")}
+                ${selectInput("Prompt strategy", "ai.promptStrategy", ["Modular prompt chain", "Single prompt", "Few-shot prompt"])}
+                <label>${t("Human review")}
+                  <span class="check-row"><input type="checkbox" data-bind="ai.humanReview" ${state.ai.humanReview ? "checked" : ""}> ${t("Required before final estimate")}</span>
+                </label>
+              </div>
+              <div style="height:16px;"></div>
+              <h3>${t("Prompt modules for backend prototype")}</h3>
+              <div class="grid">
+                ${textInput("Drawing interpretation prompt", "ai.drawingPrompt", 3)}
+                ${textInput("Material estimation prompt", "ai.estimationPrompt", 3)}
+                ${textInput("Workflow planning prompt", "ai.workflowPrompt", 3)}
+              </div>
+              <div style="height:16px;"></div>
+              <div class="section-title">
+                <h3>${t("File compatibility strategy")}</h3>
+                <span class="tag ok">${t("Gemini-first")}</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>${t("Input type")}</th><th>${t("Reality use")}</th><th>${t("Processing path")}</th></tr></thead>
+                  <tbody>
+                    <tr><td>${t("PDF drawing")}</td><td>${t("Common consultant/contractor file")}</td><td>${t("Gemini Files API / document processing")}</td></tr>
+                    <tr><td>${t("PNG/JPEG/WEBP/HEIC/HEIF")}</td><td>${t("Exported drawing or site phone photo")}</td><td>${t("Gemini image understanding")}</td></tr>
+                    <tr><td>${t("DWG/DXF/CAD/native model")}</td><td>${t("Designer or subcontractor source file")}</td><td>${t("Backend convert to PDF/PNG, then Gemini")}</td></tr>
+                    <tr><td>${t("Excel/CSV/manual list")}</td><td>${t("Conventional method baseline")}</td><td>${t("Parse as manual quantity input")}</td></tr>
+                    <tr><td>${t("Low-quality scan")}</td><td>${t("Real renovation condition")}</td><td>${t("Pre-clean image, ask Gemini for uncertainty flags, require human review")}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </details>
           </div>
+          <aside class="panel">
+            <h3>${zh ? "AI 输出预览" : "AI output preview"}</h3>
+            <ul class="assumption-list">
+              <li><span>${t("Current net floor area")}</span><strong>${fmt(totals.floorArea)} m2</strong></li>
+              <li><span>${t("Tile boxes")}</span><strong>${fmt(totals.tileBoxes, 0)}</strong></li>
+              <li><span>${t("Material cost")}</span><strong>${money(totals.materialCost)}</strong></li>
+              <li><span>${zh ? "工期" : "Duration"}</span><strong>${fmt(schedule.finalDays, 1)} ${zh ? "天" : "days"}</strong></li>
+              <li><span>${t("Risk level")}</span><strong>${t(schedule.level)}</strong></li>
+            </ul>
+            ${state.ai.lastRawResponse ? `
+              <div style="height:12px;"></div>
+              <details><summary>${t("View raw Gemini summary")}</summary><div class="raw-output">${h(state.ai.lastRawResponse)}</div></details>
+            ` : ""}
+          </aside>
         </div>
       `;
     }
 
     function renderRooms() {
       const totals = calculateTotals();
+      const reviewCount = state.rooms.filter(item => item.needsReview).length;
+      const reviewBanner = reviewCount ? `
+        <div class="notice warn">${state.language === "zh"
+          ? `有 ${reviewCount} 个房间置信度偏低，请先确认面积/尺寸再用于报价。`
+          : `${reviewCount} room(s) have low confidence — confirm area/size before trusting the estimate.`}</div>
+      ` : "";
       const cards = state.rooms.length ? state.rooms.map((item, index) => renderRoomCard(item, index)).join("") : `
         <div class="empty">
           <div>
             <strong>${t("No rooms yet.")}</strong>
-            <p class="hint">${t("Add rooms manually or import the simulated AI draft from the Project view.")}</p>
+            <p class="hint">${state.language === "zh" ? "点「添加房间」手动新增，或到「AI 识别」上传图纸自动生成房间。" : "Add rooms manually, or run AI recognition to create them automatically."}</p>
           </div>
         </div>
       `;
@@ -2079,6 +2177,7 @@ This is not final evidence. It is a planning simulation that helps define the as
         ${renderHead("Rooms and manual correction", "This is the critical review layer. AI output should become editable room data before any cost or duration result is trusted.", `
           <button class="btn primary" type="button" data-action="add-room">${t("Add room")}</button>
         `)}
+        ${reviewBanner}
         <div class="layout">
           <div class="room-list">${cards}</div>
           <aside class="panel">
@@ -2105,7 +2204,8 @@ This is not final evidence. It is a planning simulation that helps define the as
         <article class="card room-card">
           <header>
             <div>
-              <h3>${h(item.name || `Room ${index + 1}`)}</h3>
+              <h3>${h(item.name || `Room ${index + 1}`)} ${item.needsReview ? `<span class="tag warn">${state.language === "zh" ? "待复核" : "Review"}</span>` : ""}</h3>
+              ${item.aiWarning ? `<p class="hint">${h(item.aiWarning)}</p>` : ""}
               <div class="room-total">
                 <span>${t("Gross")} ${fmt(calc.gross)} m2</span>
                 <span>${t("Net")} ${fmt(calc.floorArea)} m2</span>
@@ -2629,7 +2729,14 @@ This is not final evidence. It is a planning simulation that helps define the as
       state.ai.outputSummary = state.language === "zh"
         ? "模拟 AI 从图纸中识别出三个房间。厨房置信度低于复核阈值，承包商需要在最终订料前确认尺寸。"
         : "Simulated AI extracted three rooms from the drawing. Kitchen confidence is below the review threshold, so the contractor should validate dimensions before final material ordering.";
-      toast(t("Gemini-style draft created"));
+      state.ai.lastRawResponse = state.ai.outputSummary;
+      const needsReview = createRoomsFromDraft(state.plan.aiDraft);
+      state.plan.lastImportedCount = state.plan.aiDraft.length;
+      state.plan.aiDraft = [];
+      state.activeView = "rooms";
+      toast(needsReview
+        ? (state.language === "zh" ? `演示已生成房间，其中 ${needsReview} 个待复核` : `Demo rooms created; ${needsReview} need review`)
+        : t("Gemini-style draft created"));
     }
 
     async function analyzeWithGemini() {
@@ -2696,9 +2803,16 @@ This is not final evidence. It is a planning simulation that helps define the as
         state.plan.aiStatus = "Gemini analysis complete, waiting for review";
         state.ai.analysisStatus = state.plan.aiStatus;
         state.ai.lastRawResponse = data.summary || data.workflow_notes?.join("\n") || text.slice(0, 1800);
-        state.ai.outputSummary = data.summary || state.ai.outputSummary;
+        state.ai.outputSummary = data.summary || "";
+        // Auto-create rooms and jump straight to the review page.
+        const needsReview = createRoomsFromDraft(state.plan.aiDraft);
+        state.plan.lastImportedCount = state.plan.aiDraft.length;
+        state.plan.aiDraft = [];
+        state.activeView = "rooms";
         render();
-        toast(t("Analysis complete"));
+        toast(needsReview
+          ? (state.language === "zh" ? `识别完成，已生成房间，其中 ${needsReview} 个待复核` : `Done; ${needsReview} rooms need review`)
+          : (state.language === "zh" ? "识别完成，已自动生成房间，请复核" : "Done. Rooms created for review"));
       } catch (error) {
         state.plan.aiStatus = "Gemini analysis failed";
         state.ai.analysisStatus = `${state.plan.aiStatus}: ${error.message}`;
@@ -2720,29 +2834,48 @@ This is not final evidence. It is a planning simulation that helps define the as
       return number <= 1 ? number * 100 : number;
     }
 
-    function importAiDraft() {
-      state.plan.aiDraft.forEach(item => {
-        const width = Math.sqrt(item.area);
-        const length = item.area / width;
+    // Convert AI draft rows into editable rooms.
+    // We keep the AI-reported AREA exact (shape "manual" + manualArea) instead of
+    // faking length/width, and estimate an editable perimeter so skirting still works.
+    // Returns the number of low-confidence rooms that need review.
+    function createRoomsFromDraft(draft) {
+      let needsReviewCount = 0;
+      draft.forEach(item => {
+        const area = Math.max(0, toNumber(item.area));
+        const below = toNumber(item.confidence) < toNumber(state.ai.confidenceThreshold);
+        if (below) needsReviewCount += 1;
         state.rooms.push({
           id: uid("room"),
           name: item.name,
           roomType: item.roomType,
-          shape: item.shape,
-          length: Number(length.toFixed(2)),
-          width: Number(width.toFixed(2)),
-          cutLength: item.shape === "l-shape" ? 1 : 0,
-          cutWidth: item.shape === "l-shape" ? 0.8 : 0,
-          manualArea: item.shape === "manual" ? Number(toNumber(item.area).toFixed(2)) : 0,
-          perimeter: 0,
+          shape: "manual",
+          length: 0,
+          width: 0,
+          cutLength: 0,
+          cutWidth: 0,
+          manualArea: Number(area.toFixed(2)),
+          perimeter: area > 0 ? Number((4 * Math.sqrt(area)).toFixed(2)) : 0,
           obstacleArea: 0,
           tileId: state.tiles[0]?.id || "",
-          skirting: true
+          skirting: true,
+          aiConfidence: toNumber(item.confidence),
+          needsReview: below,
+          aiWarning: item.warning || ""
         });
       });
+      return needsReviewCount;
+    }
+
+    // Auto-create rooms from the current draft and jump to the review page.
+    function importAiDraft() {
+      if (!state.plan.aiDraft.length) return;
+      const needsReview = createRoomsFromDraft(state.plan.aiDraft);
+      state.plan.lastImportedCount = state.plan.aiDraft.length;
       state.plan.aiDraft = [];
       state.activeView = "rooms";
-      toast(t("Draft rooms imported for manual correction"));
+      toast(needsReview
+        ? (state.language === "zh" ? `已生成房间，其中 ${needsReview} 个置信度偏低，请复核` : `Rooms created; ${needsReview} need review`)
+        : t("Draft rooms imported for manual correction"));
     }
 
     function handleFile(file) {
