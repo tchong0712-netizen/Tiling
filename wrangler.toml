@@ -1,0 +1,8 @@
+name = "tile-ai-estimator"
+main = "cloudflare-worker.js"
+compatibility_date = "2026-06-12"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]

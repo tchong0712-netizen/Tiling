@@ -1,0 +1,3172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI-Assisted Tile Estimation Prototype</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f2;
+      --surface: #ffffff;
+      --surface-2: #eef3ef;
+      --ink: #172026;
+      --muted: #62707a;
+      --line: #d8ded7;
+      --accent: #0f766e;
+      --accent-2: #b45309;
+      --danger: #b91c1c;
+      --ok: #166534;
+      --shadow: 0 14px 32px rgba(23, 32, 38, 0.08);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 248px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      border-right: 1px solid var(--line);
+      background: #fbfcf8;
+      padding: 18px;
+    }
+
+    .brand {
+      margin-bottom: 18px;
+    }
+
+    .eyebrow {
+      margin: 0 0 6px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+      font-size: 22px;
+      line-height: 1.15;
+    }
+
+    h2 {
+      margin-bottom: 8px;
+      font-size: 24px;
+      line-height: 1.2;
+    }
+
+    h3 {
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .nav {
+      display: grid;
+      gap: 6px;
+      margin-top: 20px;
+    }
+
+    .nav button {
+      display: grid;
+      grid-template-columns: 26px 1fr;
+      align-items: center;
+      min-height: 42px;
+      width: 100%;
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--muted);
+      padding: 8px 10px;
+      text-align: left;
+    }
+
+    .nav button.active {
+      border-color: #9fd3cc;
+      background: #e5f4f1;
+      color: #0b4f49;
+      font-weight: 800;
+    }
+
+    .nav-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border: 1px solid currentColor;
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .main {
+      min-width: 0;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid var(--line);
+      background: rgba(246, 247, 242, 0.94);
+      backdrop-filter: blur(10px);
+      padding: 14px 22px;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      min-height: 68px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 10px 12px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .metric.accent strong {
+      color: var(--accent);
+    }
+
+    .metric.warn strong {
+      color: var(--accent-2);
+    }
+
+    .content {
+      padding: 24px;
+    }
+
+    .view-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      border: 1px solid #b9c7c0;
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--ink);
+      padding: 8px 12px;
+      font-weight: 800;
+      line-height: 1;
+      text-decoration: none;
+    }
+
+    .btn.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn.warn {
+      border-color: #d58b3d;
+      background: #fff7ed;
+      color: #8a3d06;
+    }
+
+    .btn.danger {
+      border-color: #efb0b0;
+      background: #fff4f4;
+      color: var(--danger);
+    }
+
+    .btn.ghost {
+      background: transparent;
+    }
+
+    .icon-btn {
+      width: 36px;
+      min-width: 36px;
+      padding: 0;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel,
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .panel {
+      padding: 16px;
+    }
+
+    .card {
+      padding: 14px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid.four {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: #30404a;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid #bdc8c2;
+      border-radius: var(--radius);
+      background: white;
+      color: var(--ink);
+      padding: 8px 10px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 112px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.16);
+    }
+
+    input[type="checkbox"] {
+      min-height: auto;
+      width: 18px;
+      height: 18px;
+    }
+
+    input[type="range"] {
+      padding: 0;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      color: var(--ink);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    table {
+      width: 100%;
+      min-width: 720px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--surface-2);
+      color: #31434c;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .room-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .room-card {
+      display: grid;
+      gap: 12px;
+    }
+
+    .room-card header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .room-total {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface-2);
+      padding: 4px 8px;
+      color: #34444d;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .tag.ok {
+      border-color: #a7d6b4;
+      background: #effaf1;
+      color: var(--ok);
+    }
+
+    .tag.warn {
+      border-color: #e8bc80;
+      background: #fff8ec;
+      color: #8a3d06;
+    }
+
+    .tag.danger {
+      border-color: #ebb2b2;
+      background: #fff4f4;
+      color: var(--danger);
+    }
+
+    .canvas-box {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fbfcf8;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 330px;
+    }
+
+    .plan-preview {
+      display: grid;
+      min-height: 260px;
+      place-items: center;
+      overflow: hidden;
+      border: 1px dashed #a9b8b1;
+      border-radius: var(--radius);
+      background: #fbfcf8;
+    }
+
+    .plan-preview img {
+      display: block;
+      width: 100%;
+      max-height: 420px;
+      object-fit: contain;
+    }
+
+    .assumption-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .assumption-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      padding: 8px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .assumption-list li:last-child {
+      border-bottom: 0;
+    }
+
+    .assumption-list strong {
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .flow-step {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 12px;
+    }
+
+    .flow-step strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--accent);
+      font-size: 13px;
+    }
+
+    .flow-step span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .report {
+      white-space: pre-wrap;
+      min-height: 420px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fbfcf8;
+      padding: 16px;
+      color: #26343b;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      z-index: 30;
+      transform: translateX(-50%);
+      border-radius: var(--radius);
+      background: #172026;
+      color: white;
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+      font-weight: 800;
+    }
+
+    .empty {
+      display: grid;
+      min-height: 180px;
+      place-items: center;
+      border: 1px dashed #a9b8b1;
+      border-radius: var(--radius);
+      color: var(--muted);
+      text-align: center;
+      padding: 20px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+    }
+
+    @media (max-width: 1100px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: relative;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .nav {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .flow {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .topbar,
+      .content {
+        padding: 14px;
+      }
+
+      .summary,
+      .grid.two,
+      .grid.three,
+      .grid.four,
+      .flow,
+      .nav {
+        grid-template-columns: 1fr;
+      }
+
+      .view-head,
+      .room-card header,
+      .section-title {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      canvas {
+        height: 280px;
+      }
+    }
+
+    @media print {
+      .sidebar,
+      .topbar,
+      .actions,
+      .no-print {
+        display: none !important;
+      }
+
+      .shell {
+        display: block;
+      }
+
+      .content {
+        padding: 0;
+      }
+
+      .panel,
+      .card,
+      .report {
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar no-print">
+      <div class="brand" id="brand">
+        <p class="eyebrow">Research prototype</p>
+        <h1>AI-Assisted Tile Estimation Prototype</h1>
+        <p class="hint">A thesis prototype comparing generative AI-assisted and conventional tiling estimation for Malaysian small contractors.</p>
+      </div>
+      <label class="no-print" id="languageLabel" style="margin-bottom:14px;">Language
+        <select id="languageSelect">
+          <option value="zh">中文</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+      <button class="btn ghost no-print" id="resetDemoButton" style="width:100%; margin-bottom:14px;" type="button" data-action="reset-demo">重置为中文示例</button>
+      <nav class="nav" id="nav"></nav>
+    </aside>
+
+    <main class="main">
+      <header class="topbar no-print">
+        <div class="summary" id="summary"></div>
+      </header>
+      <section class="content" id="view"></section>
+    </main>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "tile-planning-system-v2";
+
+    const navItems = [
+      ["overview", "O", "Overview"],
+      ["project", "P", "Project"],
+      ["ai", "A", "AI Pipeline"],
+      ["rooms", "R", "Rooms"],
+      ["materials", "M", "Materials"],
+      ["schedule", "S", "Schedule"],
+      ["weather", "W", "Weather"],
+      ["evaluation", "E", "Evaluation"],
+      ["simulation", "X", "Simulation"],
+      ["report", "T", "Report"]
+    ];
+
+    const i18n = {
+      zh: {
+        "Research prototype": "研究原型",
+        "AI-Assisted Tile Estimation Prototype": "AI 辅助瓷砖估算原型",
+        "A thesis prototype comparing generative AI-assisted and conventional tiling estimation for Malaysian small contractors.": "用于比较 AI 辅助与传统瓷砖估算方法的论文原型，面向马来西亚小型承包商。",
+        "Overview": "总览",
+        "Project": "项目",
+        "AI Pipeline": "AI 流程",
+        "Rooms": "房间",
+        "Materials": "材料",
+        "Schedule": "工期",
+        "Weather": "天气",
+        "Evaluation": "评估",
+        "Simulation": "模拟",
+        "Report": "报告",
+        "Planning workspace": "规划工作台",
+        "Net floor area": "净面积",
+        "Tile area with waste": "含损耗面积",
+        "Tile boxes": "瓷砖箱数",
+        "Material cost": "材料成本",
+        "Final duration": "最终工期",
+        "Estimated tile pieces": "瓷砖片数",
+        "Adhesive bags": "瓷砖胶包数",
+        "Delay risk": "延误风险",
+        "Edit rooms": "编辑房间",
+        "Open report": "打开报告",
+        "Current assumptions": "当前假设",
+        "Tile waste allowance": "瓷砖损耗",
+        "Adhesive coverage per 50kg bag": "每 50kg 胶覆盖面积",
+        "Thickness adjustment factor": "厚度修正系数",
+        "Worker productivity": "工人效率",
+        "Recommended workers for target": "建议工人数",
+        "Thesis objective dashboard": "论文目标仪表盘",
+        "Research evaluation snapshot": "研究评估快照",
+        "Model duration error": "模型工期误差",
+        "AI vs actual material error": "AI 材料误差",
+        "Time saving": "节省时间",
+        "Human review enabled": "已启用人工复核",
+        "Low": "低",
+        "Medium": "中",
+        "High": "高",
+        "Language": "语言",
+        "Refresh weather": "刷新天气",
+        "Live weather": "实时天气",
+        "Weather forecast": "天气预报",
+        "Weather risk add-on": "天气风险附加",
+        "Weather status": "天气状态",
+        "Workability": "可施工性",
+        "Objective 1: accuracy": "目标 1：准确率",
+        "Objective 2: time": "目标 2：时间",
+        "Objective 3: usability": "目标 3：实用性",
+        "AI-assisted vs conventional": "AI 辅助 vs 传统方法",
+        "AI direct output": "AI 直接输出",
+        "Good": "良好",
+        "Caution": "注意",
+        "Stop outdoor work": "户外停工",
+        "Outdoor": "户外",
+        "Mixed": "混合",
+        "Indoor": "室内",
+        "Loading": "加载中",
+        "Live": "实时",
+        "Error": "错误",
+        "Not loaded": "未加载",
+        "Clear": "晴",
+        "Mainly clear": "大致晴朗",
+        "Partly cloudy": "局部多云",
+        "Overcast": "阴天",
+        "Fog": "雾",
+        "Light drizzle": "小毛毛雨",
+        "Drizzle": "毛毛雨",
+        "Dense drizzle": "密集毛毛雨",
+        "Slight rain": "小雨",
+        "Rain": "雨",
+        "Heavy rain": "大雨",
+        "Rain showers": "阵雨",
+        "Violent rain showers": "强阵雨",
+        "Thunderstorm": "雷暴",
+        "Thunderstorm with hail": "雷暴伴冰雹",
+        "Weather data": "天气数据"
+        ,"Project and floor plan": "项目与图纸"
+        ,"Research objective mapping": "研究目标对应"
+        ,"Real-world site conditions": "真实工地条件"
+        ,"Floor plan preview": "图纸预览"
+        ,"Upload drawing file": "上传图纸文件"
+        ,"Accepted input": "支持输入"
+        ,"Pre-processing": "预处理"
+        ,"Backend conversion": "后端转换"
+        ,"Recommended waste": "建议损耗"
+        ,"Real-world risk add-on": "真实工地风险附加"
+        ,"Drawing scale note (%)": "图纸比例备注 (%)"
+        ,"File pre-processing note": "文件预处理说明"
+        ,"Project name": "项目名称"
+        ,"Client": "客户"
+        ,"Location": "地点"
+        ,"Estimate date": "估算日期"
+        ,"Notes": "备注"
+        ,"Drawing quality": "图纸质量"
+        ,"Input reality": "输入文件现实情况"
+        ,"Scale reliability": "比例可靠性"
+        ,"Substrate levelness": "地面平整度"
+        ,"Tile pattern": "铺贴方式"
+        ,"Access constraint": "现场限制"
+        ,"Work exposure": "施工受天气影响范围"
+        ,"Wet-area condition": "湿区条件"
+        ,"Reality notes": "现实情况备注"
+        ,"Clean digital PDF": "清晰数字 PDF"
+        ,"Mixed / site photo + scanned PDF": "混合：现场照片 + 扫描 PDF"
+        ,"Poor scan / unclear dimension": "扫描差 / 尺寸不清"
+        ,"PDF or image preferred; CAD requires conversion": "优先 PDF 或图片；CAD 需转换"
+        ,"CAD/DWG/DXF from designer": "设计师提供 CAD/DWG/DXF"
+        ,"Phone photo or scan from contractor": "承包商手机照片或扫描件"
+        ,"Spreadsheet/manual measurement only": "仅表格或人工测量"
+        ,"Flat": "平整"
+        ,"Normal": "普通"
+        ,"Uneven": "不平整"
+        ,"Straight layout": "直铺"
+        ,"Diagonal layout": "斜铺"
+        ,"Intricate / mixed pattern": "复杂 / 混合铺法"
+        ,"Empty site / new work": "空置工地 / 新工程"
+        ,"Occupied house / renovation": "有人居住 / 翻新工程"
+        ,"Tight access / high-rise": "通道狭窄 / 高楼"
+        ,"Indoor only": "仅室内"
+        ,"Mixed indoor/outdoor": "室内外混合"
+        ,"Outdoor work": "户外施工"
+        ,"Dry areas only": "仅干区"
+        ,"Wet areas only": "仅湿区"
+        ,"Mixed indoor wet and dry areas": "室内干湿区混合"
+        ,"AI-assisted workflow": "AI 辅助流程"
+        ,"Gemini backend connection": "Gemini 后端连接"
+        ,"Provider": "供应商"
+        ,"AI mode": "AI 模式"
+        ,"Model target": "模型目标"
+        ,"Prompt strategy": "提示词策略"
+        ,"Confidence threshold (%)": "置信度阈值 (%)"
+        ,"API key placement": "API key 放置位置"
+        ,"Backend URL (blank uses /api/analyze)": "后端 URL（空白则使用 /api/analyze）"
+        ,"Human review": "人工复核"
+        ,"Required before final estimate": "最终估算前必须复核"
+        ,"Upload status": "上传状态"
+        ,"Analysis status": "识别状态"
+        ,"Deployment": "部署状态"
+        ,"Not uploaded": "未上传"
+        ,"Gemini vision + estimator": "Gemini 视觉 + 估算"
+        ,"Gemini PDF + estimator": "Gemini PDF + 估算"
+        ,"Manual extraction + Gemini planner": "人工提取 + Gemini 规划"
+        ,"Modular prompt chain": "模块化提示词链"
+        ,"Single prompt": "单一提示词"
+        ,"Few-shot prompt": "少样本提示词"
+        ,"Backend only": "仅后端"
+        ,"Local prototype only": "仅本地原型"
+        ,"File compatibility strategy": "文件兼容策略"
+        ,"Input type": "输入类型"
+        ,"Reality use": "现实用途"
+        ,"Processing path": "处理方式"
+        ,"Prompt modules for backend prototype": "后端原型提示词模块"
+        ,"Drawing interpretation prompt": "图纸理解提示词"
+        ,"Material estimation prompt": "材料估算提示词"
+        ,"Workflow planning prompt": "工序规划提示词"
+        ,"AI-assisted output preview": "AI 输出预览"
+        ,"Current net floor area": "当前净面积"
+        ,"Risk level": "风险等级"
+        ,"AI output note": "AI 输出说明"
+        ,"Rooms and manual correction": "房间与人工复核"
+        ,"Add room": "添加房间"
+        ,"Room totals": "房间汇总"
+        ,"Gross entered area": "输入毛面积"
+        ,"Deductions": "扣除面积"
+        ,"Skirting length": "踢脚线长度"
+        ,"Tile area incl. skirting": "含踢脚线瓷砖面积"
+        ,"Room name": "房间名称"
+        ,"Room type": "房间类型"
+        ,"Shape": "形状"
+        ,"Tile scheme": "瓷砖方案"
+        ,"Length (m)": "长度 (m)"
+        ,"Width (m)": "宽度 (m)"
+        ,"L cut length (m)": "L 形扣除长度 (m)"
+        ,"L cut width (m)": "L 形扣除宽度 (m)"
+        ,"Manual area (m2)": "手动面积 (m2)"
+        ,"Manual perimeter (m)": "手动周长 (m)"
+        ,"Obstacle or void area (m2)": "障碍/空洞面积 (m2)"
+        ,"Skirting": "踢脚线"
+        ,"Include skirting area": "包含踢脚线面积"
+        ,"Living": "客厅"
+        ,"Bedroom": "卧室"
+        ,"Kitchen": "厨房"
+        ,"Bathroom": "浴室"
+        ,"Corridor": "走廊"
+        ,"Balcony": "阳台"
+        ,"Other": "其他"
+        ,"Rectangle": "矩形"
+        ,"L-shape": "L 形"
+        ,"Manual area": "手动面积"
+        ,"Workers": "工人数"
+        ,"Productivity / worker / day (m2)": "每名工人每日效率 (m2)"
+        ,"Target duration (days)": "目标工期 (天)"
+        ,"Complexity factor": "复杂度系数"
+        ,"Weather delay (%)": "人工天气延误 (%)"
+        ,"Worker absence (%)": "工人缺勤 (%)"
+        ,"Material risk (%)": "材料风险 (%)"
+        ,"Equipment risk (%)": "设备风险 (%)"
+        ,"Public holiday days": "公共假期天数"
+        ,"Buffer (%)": "缓冲 (%)"
+        ,"Store the project case, upload the drawing, and prepare the input required by both conventional and AI-assisted methods.": "保存项目案例、上传图纸，并准备传统方法和 AI 辅助方法都需要的输入。"
+        ,"Open AI pipeline": "打开 AI 流程"
+        ,"Project details": "项目资料"
+        ,"Thesis aligned": "匹配论文"
+        ,"Objective 1": "目标 1"
+        ,"Objective 2": "目标 2"
+        ,"Objective 3": "目标 3"
+        ,"Material accuracy": "材料准确率"
+        ,"Workflow preparation time": "工序准备时间"
+        ,"Practical usability": "实际可用性"
+        ,"Comparison design": "比较设计"
+        ,"AI vs conventional": "AI vs 传统方法"
+        ,"Risk-linked": "风险关联"
+        ,"No image preview uploaded.": "尚未上传可预览图片。"
+        ,"Image ready for Gemini vision": "图片已准备好，可交给 Gemini 视觉识别"
+        ,"PDF ready for Gemini document processing": "PDF 已准备好，可交给 Gemini 文档识别"
+        ,"CAD/model file needs backend conversion": "CAD/模型文件需要后端先转换"
+        ,"Spreadsheet ready for conventional baseline parsing": "表格可用于传统方法基准解析"
+        ,"Document needs backend text extraction": "文档需要后端提取文字"
+        ,"Uploaded file needs backend pre-processing": "上传文件需要后端预处理"
+        ,"Gemini-first": "优先 Gemini"
+        ,"PDF drawing": "PDF 图纸"
+        ,"Common consultant/contractor file": "常见顾问/承包商文件"
+        ,"Gemini Files API / document processing": "Gemini Files API / 文档处理"
+        ,"PNG/JPEG/WEBP/HEIC/HEIF": "PNG/JPEG/WEBP/HEIC/HEIF"
+        ,"Exported drawing or site phone photo": "导出图纸或现场手机照片"
+        ,"Gemini image understanding": "Gemini 图片理解"
+        ,"DWG/DXF/CAD/native model": "DWG/DXF/CAD/原生模型"
+        ,"Designer or subcontractor source file": "设计师或分包源文件"
+        ,"Backend convert to PDF/PNG, then Gemini": "后端转换为 PDF/PNG 后交给 Gemini"
+        ,"Excel/CSV/manual list": "Excel/CSV/手动清单"
+        ,"Conventional method baseline": "传统方法基准"
+        ,"Parse as manual quantity input": "作为人工工程量输入解析"
+        ,"Low-quality scan": "低质量扫描件"
+        ,"Real renovation condition": "真实翻新现场常见情况"
+        ,"Pre-clean image, ask Gemini for uncertainty flags, require human review": "先清理图片，让 Gemini 标出不确定项，并要求人工复核"
+        ,"Structured AI extraction draft": "AI 结构化识别草稿"
+        ,"Room": "房间"
+        ,"Type": "类型"
+        ,"Area": "面积"
+        ,"Confidence": "置信度"
+        ,"View raw Gemini summary": "查看 Gemini 原始摘要"
+        ,"No rooms yet.": "还没有房间。"
+        ,"Add rooms manually or import the simulated AI draft from the Project view.": "可以手动添加房间，或从项目页面导入 AI 草稿。"
+        ,"This is the critical review layer. AI output should become editable room data before any cost or duration result is trusted.": "这是关键复核层。AI 输出必须先变成可编辑房间数据，之后成本和工期结果才可信。"
+        ,"Add room": "添加房间"
+        ,"Gross": "毛面积"
+        ,"Net": "净面积"
+        ,"Tiles": "瓷砖"
+        ,"Boxes": "箱"
+        ,"Duplicate room": "复制房间"
+        ,"Delete room": "删除房间"
+        ,"Delete tile scheme": "删除瓷砖方案"
+        ,"Tiles and material assumptions": "瓷砖与材料假设"
+        ,"Rates stay editable so you can align them with interview findings, supplier prices, and thesis assumptions.": "所有单价和参数都可编辑，方便对齐访谈结果、供应商价格和论文假设。"
+        ,"Add tile scheme": "添加瓷砖方案"
+        ,"Tile schemes": "瓷砖方案"
+        ,"Name": "名称"
+        ,"Length m": "长度 m"
+        ,"Width m": "宽度 m"
+        ,"Pcs/box": "片/箱"
+        ,"RM/box": "RM/箱"
+        ,"Global material settings": "全局材料设置"
+        ,"Waste allowance (%)": "损耗率 (%)"
+        ,"Skirting height (m)": "踢脚线高度 (m)"
+        ,"Adhesive coverage / 50kg bag (m2)": "每 50kg 瓷砖胶覆盖面积 (m2)"
+        ,"Thickness factor": "厚度系数"
+        ,"Adhesive cost / bag": "瓷砖胶每包成本"
+        ,"Grout kg / m2": "填缝剂 kg / m2"
+        ,"Grout cost / kg": "填缝剂每 kg 成本"
+        ,"Cement bags / m2": "水泥包 / m2"
+        ,"Cement cost / bag": "水泥每包成本"
+        ,"Sand m3 / m2": "沙 m3 / m2"
+        ,"Sand cost / m3": "沙每 m3 成本"
+        ,"Material output": "材料输出"
+        ,"Configured waste": "当前设置损耗"
+        ,"Adhesive": "瓷砖胶"
+        ,"Adhesive cost": "瓷砖胶成本"
+        ,"Grout": "填缝剂"
+        ,"Cement": "水泥"
+        ,"Sand": "沙"
+        ,"Total material cost": "材料总成本"
+        ,"Labour and productivity inputs": "人工与效率输入"
+        ,"Duration output": "工期输出"
+        ,"Daily output": "每日产量"
+        ,"Base duration": "基础工期"
+        ,"Risk score": "风险分数"
+        ,"Adjusted duration": "修正后工期"
+        ,"Buffer days": "缓冲天数"
+        ,"Recommended workers": "建议工人数"
+        ,"Delay risk level": "延误风险等级"
+        ,"Temperature": "温度"
+        ,"Humidity": "湿度"
+        ,"Rain now": "当前降雨"
+        ,"Wind": "风速"
+        ,"Weather location": "天气地区"
+        ,"Project location / city": "项目地区 / 城市"
+        ,"Use live weather": "启用实时天气"
+        ,"Include in schedule calculation": "纳入工期计算"
+        ,"Date": "日期"
+        ,"Condition": "天气"
+        ,"Temp": "温度"
+        ,"Rain chance": "降雨概率"
+        ,"Last updated": "最后更新"
+        ,"Research validation": "研究验证"
+        ,"Compare AI estimation, manual estimation, actual project results, and this model output.": "比较 AI 估算、人工估算、真实项目结果和本模型输出。"
+        ,"Validation dataset inputs": "验证数据输入"
+        ,"AI material cost": "AI 材料成本"
+        ,"Manual material cost": "人工材料成本"
+        ,"Actual material cost": "实际材料成本"
+        ,"AI duration (days)": "AI 工期 (天)"
+        ,"Manual duration (days)": "人工工期 (天)"
+        ,"Actual duration (days)": "实际工期 (天)"
+        ,"AI calculation time (min)": "AI 计算时间 (分钟)"
+        ,"Manual calculation time (min)": "人工计算时间 (分钟)"
+        ,"Small real-user test plan": "小规模真实用户测试计划"
+        ,"Qualitative + task metrics": "质性反馈 + 任务指标"
+        ,"Target users": "目标用户数"
+        ,"User profile": "用户类型"
+        ,"Task": "测试任务"
+        ,"Measures": "衡量指标"
+        ,"Evaluation metrics": "评估指标"
+        ,"This model material error": "本模型材料误差"
+        ,"This model duration error": "本模型工期误差"
+        ,"AI material error": "AI 材料误差"
+        ,"Manual material error": "人工材料误差"
+        ,"AI duration error": "AI 工期误差"
+        ,"Manual duration error": "人工工期误差"
+        ,"Calculation time saving": "计算时间节省"
+        ,"Project report": "项目报告"
+        ,"The generated report is designed for thesis screenshots, supervisor review, and export as project evidence.": "生成报告可用于论文截图、导师检查和项目证据导出。"
+        ,"Copy": "复制"
+        ,"Download text": "下载文本"
+        ,"Print": "打印"
+        ,"Report copied": "报告已复制"
+        ,"Clipboard blocked. Use Download text instead.": "剪贴板被浏览器阻止，请改用下载文本。"
+        ,"Draft rooms imported for manual correction": "已导入草稿房间，请进行人工复核"
+        ,"Add rooms to generate a diagram preview.": "添加房间后会生成图纸预览。"
+        ,"Reset to Chinese demo": "重置为中文示例"
+        ,"Chinese demo reset": "已重置为中文示例"
+        ,"Room added": "已添加房间"
+        ,"Gemini-style draft created": "已生成 Gemini 风格草稿"
+        ,"Deploy backend first": "需要先部署后端"
+        ,"Analysis complete": "识别完成"
+        ,"Gemini returned no rooms": "Gemini 没有返回房间列表"
+        ,"Simulation completed": "模拟已完成"
+        ,"Not run": "尚未运行"
+        ,"Gemini backend not connected": "未连接 Gemini 后端"
+        ,"Gemini extraction simulated": "Gemini 模拟识别完成"
+        ,"Upload a drawing file first": "请先在项目页面上传图纸文件"
+        ,"Missing online backend. file:// cannot securely call Gemini. Deploy using DEPLOY.md first.": "缺少线上后端。当前是 file:// 本地文件，无法安全调用 Gemini。请按 DEPLOY.md 上线后再识别。"
+        ,"Calling Gemini...": "正在调用 Gemini..."
+        ,"Gemini analysis complete, waiting for review": "Gemini 识别完成，等待人工复核"
+        ,"Gemini analysis failed": "Gemini 识别失败"
+        ,"Drawing uploaded. Open AI Pipeline and run Gemini analysis.": "已上传图纸，请进入 AI 流程点击 Gemini 识别图纸。"
+        ,"Local file, no same-origin backend": "本地文件，不能调用同源后端"
+        ,"Online page": "线上页面"
+      },
+      en: {}
+    };
+
+    const roomTypes = ["Living", "Bedroom", "Kitchen", "Bathroom", "Corridor", "Balcony", "Other"];
+    const shapeTypes = [
+      ["rectangle", "Rectangle"],
+      ["l-shape", "L-shape"],
+      ["manual", "Manual area"]
+    ];
+
+    const defaultState = {
+      language: "zh",
+      activeView: "overview",
+      project: {
+        name: "样例排屋瓷砖工程",
+        client: "",
+        location: "Kuala Lumpur, Malaysia",
+        date: new Date().toISOString().slice(0, 10),
+        notes: "后续可替换为论文案例项目数据。"
+      },
+      plan: {
+        fileName: "",
+        fileType: "",
+        previewData: "",
+        scale: 100,
+        aiStatus: "Not run",
+        aiDraft: [],
+        acceptedInput: "PDF、图片、CAD 导出图、扫描图、表格或人工输入",
+        preprocessingNote: "CAD/native model 文件需要先在后端转换成 PDF 或高分辨率 PNG，再交给 Gemini 分析。"
+      },
+      ai: {
+        provider: "Gemini API",
+        mode: "Gemini vision + estimator",
+        modelName: "gemini-3.5-flash",
+        promptStrategy: "Modular prompt chain",
+        confidenceThreshold: 80,
+        humanReview: true,
+        apiPlacement: "Backend only",
+        backendUrl: "",
+        analysisStatus: "未连接 Gemini 后端",
+        lastRawResponse: "",
+        drawingPrompt: "Extract room names, room types, approximate floor areas, irregular shapes, columns, voids, and dimension warnings from the uploaded tiling drawing.",
+        estimationPrompt: "Using validated room areas, tile size, wastage allowance, skirting, adhesive coverage, grout rate, labour productivity, and risk factors, compute material quantities and workflow duration.",
+        workflowPrompt: "Generate a practical tiling workflow for a Malaysian small contractor: site measurement, surface preparation, procurement, dry layout, cutting, installation, curing, grouting, inspection, and handover.",
+        outputSummary: "未部署 Gemini 后端前，AI 识别不会真正工作。部署后端后会返回结构化 JSON，并进入人工复核。"
+      },
+      site: {
+        drawingQuality: "Mixed / site photo + scanned PDF",
+        fileTypeReality: "PDF or image preferred; CAD requires conversion",
+        scaleReliability: "Medium",
+        substrateLevelness: "Normal",
+        tilePattern: "Straight layout",
+        accessConstraint: "Occupied house / renovation",
+        workExposure: "Mixed indoor/outdoor",
+        wetArea: "Mixed indoor wet and dry areas",
+        notes: "真实项目可能包含尺寸缺失、手写标注、比例不清、柱位、门洞、固定柜、地面不平、瓷砖批次限制、配送延误和有人居住施工限制。"
+      },
+      weather: {
+        enabled: true,
+        locationQuery: "Kuala Lumpur, Malaysia",
+        resolvedName: "",
+        latitude: null,
+        longitude: null,
+        status: "Not loaded",
+        lastUpdated: "",
+        current: null,
+        daily: [],
+        error: "",
+        aiNote: "天气尚未刷新。刷新后会使用实时预报修正工期。"
+      },
+      rooms: [
+        room("客厅", "Living", "rectangle", 5.2, 4.1, 0, 0, 0.35, "tile-1", true),
+        room("厨房", "Kitchen", "l-shape", 3.8, 3.4, 1.2, 0.9, 0.25, "tile-2", true),
+        room("卧室 1", "Bedroom", "rectangle", 4.0, 3.2, 0, 0, 0, "tile-1", true)
+      ],
+      tiles: [
+        tile("tile-1", "同质砖 600 x 600", 0.6, 0.6, 4, 58),
+        tile("tile-2", "防滑砖 300 x 300", 0.3, 0.3, 11, 42)
+      ],
+      settings: {
+        wastePercent: 10,
+        skirtingHeight: 0.1,
+        adhesiveCoveragePerBag: 7.57,
+        adhesiveCostPerBag: 28,
+        thicknessFactor: 1,
+        groutKgPerM2: 0.18,
+        groutCostPerKg: 6.5,
+        cementBagPerM2: 0,
+        cementCostPerBag: 18,
+        sandM3PerM2: 0,
+        sandCostPerM3: 95
+      },
+      schedule: {
+        workers: 2,
+        productivityPerWorker: 21.1,
+        targetDays: 7,
+        complexityFactor: 1.08,
+        weatherDelayPercent: 6,
+        workerAbsencePercent: 5,
+        materialRiskPercent: 10,
+        equipmentRiskPercent: 4,
+        publicHolidayDays: 0,
+        bufferPercent: 10
+      },
+      evaluation: {
+        aiMaterialCost: 2650,
+        manualMaterialCost: 2850,
+        actualMaterialCost: 2600,
+        aiDuration: 1.5,
+        manualDuration: 2,
+        actualDuration: 1.6,
+        aiCalculationMinutes: 4,
+        manualCalculationMinutes: 55
+      },
+      userTest: {
+        targetUsers: 6,
+        profile: "Malaysian small tiling contractors / estimators",
+        task: "Estimate material quantities and workflow plan from the same sample drawing using conventional and AI-assisted workflows.",
+        measures: "Accuracy, completion time, correction count, confidence, perceived usefulness, perceived ease of use, trust, and adoption barriers."
+      },
+      simulation: {
+        sampleProjects: 30,
+        aiMaterialErrorMean: 8,
+        manualMaterialErrorMean: 15,
+        aiDurationErrorMean: 10,
+        manualDurationErrorMean: 18,
+        aiMinutesMean: 6,
+        manualMinutesMean: 55,
+        lastRun: null
+      }
+    };
+
+    let state = loadState();
+    let weatherAutoStarted = false;
+    let currentUploadedFile = null;
+
+    function room(name, roomType, shape, length, width, cutLength, cutWidth, obstacleArea, tileId, skirting) {
+      return {
+        id: uid("room"),
+        name,
+        roomType,
+        shape,
+        length,
+        width,
+        cutLength,
+        cutWidth,
+        manualArea: 0,
+        perimeter: 0,
+        obstacleArea,
+        tileId,
+        skirting
+      };
+    }
+
+    function tile(id, name, length, width, piecesPerBox, costPerBox) {
+      return { id, name, length, width, piecesPerBox, costPerBox };
+    }
+
+    function uid(prefix) {
+      return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
+    }
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (!saved) return structuredClone(defaultState);
+        return mergeState(structuredClone(defaultState), saved);
+      } catch {
+        return structuredClone(defaultState);
+      }
+    }
+
+    function mergeState(base, saved) {
+      for (const key of Object.keys(saved || {})) {
+        if (saved[key] && typeof saved[key] === "object" && !Array.isArray(saved[key])) {
+          base[key] = mergeState(base[key] || {}, saved[key]);
+        } else {
+          base[key] = saved[key];
+        }
+      }
+      return base;
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function h(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function t(text) {
+      return i18n[state.language]?.[text] || text;
+    }
+
+    function statusText(message) {
+      const value = String(message || "");
+      const separator = value.indexOf(": ");
+      if (separator < 0) return t(value);
+      return `${t(value.slice(0, separator))}: ${value.slice(separator + 2)}`;
+    }
+
+    function toNumber(value, fallback = 0) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number : fallback;
+    }
+
+    function fmt(value, digits = 2) {
+      return toNumber(value).toLocaleString("en-MY", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      });
+    }
+
+    function money(value) {
+      return `RM ${fmt(value)}`;
+    }
+
+    function percent(value) {
+      return `${fmt(value, 1)}%`;
+    }
+
+    function getPath(path) {
+      return path.split(".").reduce((obj, key) => obj?.[key], state);
+    }
+
+    function setPath(path, value) {
+      const parts = path.split(".");
+      let cursor = state;
+      while (parts.length > 1) cursor = cursor[parts.shift()];
+      cursor[parts[0]] = value;
+    }
+
+    function localizeDefaultData(language) {
+      const roomMap = language === "zh"
+        ? { "Living Room": "客厅", "Kitchen": "厨房", "Bedroom 1": "卧室 1", "Detected Living": "识别客厅", "Detected Bedroom": "识别卧室", "Detected Kitchen": "识别厨房" }
+        : { "客厅": "Living Room", "厨房": "Kitchen", "卧室 1": "Bedroom 1", "识别客厅": "Detected Living", "识别卧室": "Detected Bedroom", "识别厨房": "Detected Kitchen" };
+      const tileMap = language === "zh"
+        ? { "Homogeneous 600 x 600": "同质砖 600 x 600", "Anti-slip 300 x 300": "防滑砖 300 x 300" }
+        : { "同质砖 600 x 600": "Homogeneous 600 x 600", "防滑砖 300 x 300": "Anti-slip 300 x 300" };
+      const projectMap = language === "zh"
+        ? { "Sample Terrace House Tile Works": "样例排屋瓷砖工程" }
+        : { "样例排屋瓷砖工程": "Sample Terrace House Tile Works" };
+      const textMap = language === "zh"
+        ? {
+          "Replace with thesis case project data later.": "后续可替换为论文案例项目数据。",
+          "PDF, image, CAD export, scan, spreadsheet, or manual input": "PDF、图片、CAD 导出图、扫描图、表格或人工输入",
+          "CAD/native model files should be converted by the backend into PDF or high-resolution PNG before Gemini analysis.": "CAD/native model 文件需要先在后端转换成 PDF 或高分辨率 PNG，再交给 Gemini 分析。",
+          "Gemini backend not connected": "未连接 Gemini 后端",
+          "Before deploying the Gemini backend, AI drawing recognition will not truly run. After deployment, the backend will return structured JSON for human review.": "未部署 Gemini 后端前，AI 识别不会真正工作。部署后端后会返回结构化 JSON，并进入人工复核。",
+          "Real projects may include missing dimensions, handwritten notes, unclear scale, columns, door openings, fixed cabinets, uneven substrate, tile batch limits, delivery delays, and occupied-house work constraints.": "真实项目可能包含尺寸缺失、手写标注、比例不清、柱位、门洞、固定柜、地面不平、瓷砖批次限制、配送延误和有人居住施工限制。",
+          "Weather has not been refreshed. After refresh, live forecast will adjust the duration.": "天气尚未刷新。刷新后会使用实时预报修正工期。",
+          "Malaysian small tiling contractors / estimators": "马来西亚小型瓷砖承包商 / 估算人员",
+          "Estimate material quantities and workflow plan from the same sample drawing using conventional and AI-assisted workflows.": "使用同一张样例图纸，分别用传统流程和 AI 辅助流程估算材料数量与工序计划。",
+          "Accuracy, completion time, correction count, confidence, perceived usefulness, perceived ease of use, trust, and adoption barriers.": "准确率、完成时间、修正次数、信心、有用性感知、易用性感知、信任度和采用障碍。"
+          ,"Simulated AI extracted three rooms from the drawing. Kitchen confidence is below the review threshold, so the contractor should validate dimensions before final material ordering.": "模拟 AI 从图纸中识别出三个房间。厨房置信度低于复核阈值，承包商需要在最终订料前确认尺寸。"
+        }
+        : {
+          "后续可替换为论文案例项目数据。": "Replace with thesis case project data later.",
+          "PDF、图片、CAD 导出图、扫描图、表格或人工输入": "PDF, image, CAD export, scan, spreadsheet, or manual input",
+          "CAD/native model 文件需要先在后端转换成 PDF 或高分辨率 PNG，再交给 Gemini 分析。": "CAD/native model files should be converted by the backend into PDF or high-resolution PNG before Gemini analysis.",
+          "未连接 Gemini 后端": "Gemini backend not connected",
+          "未部署 Gemini 后端前，AI 识别不会真正工作。部署后端后会返回结构化 JSON，并进入人工复核。": "Before deploying the Gemini backend, AI drawing recognition will not truly run. After deployment, the backend will return structured JSON for human review.",
+          "真实项目可能包含尺寸缺失、手写标注、比例不清、柱位、门洞、固定柜、地面不平、瓷砖批次限制、配送延误和有人居住施工限制。": "Real projects may include missing dimensions, handwritten notes, unclear scale, columns, door openings, fixed cabinets, uneven substrate, tile batch limits, delivery delays, and occupied-house work constraints.",
+          "天气尚未刷新。刷新后会使用实时预报修正工期。": "Weather has not been refreshed. After refresh, live forecast will adjust the duration.",
+          "马来西亚小型瓷砖承包商 / 估算人员": "Malaysian small tiling contractors / estimators",
+          "使用同一张样例图纸，分别用传统流程和 AI 辅助流程估算材料数量与工序计划。": "Estimate material quantities and workflow plan from the same sample drawing using conventional and AI-assisted workflows.",
+          "准确率、完成时间、修正次数、信心、有用性感知、易用性感知、信任度和采用障碍。": "Accuracy, completion time, correction count, confidence, perceived usefulness, perceived ease of use, trust, and adoption barriers."
+          ,"模拟 AI 从图纸中识别出三个房间。厨房置信度低于复核阈值，承包商需要在最终订料前确认尺寸。": "Simulated AI extracted three rooms from the drawing. Kitchen confidence is below the review threshold, so the contractor should validate dimensions before final material ordering."
+        };
+
+      state.rooms.forEach(room => {
+        if (roomMap[room.name]) room.name = roomMap[room.name];
+      });
+      state.plan.aiDraft.forEach(room => {
+        if (roomMap[room.name]) room.name = roomMap[room.name];
+      });
+      state.tiles.forEach(tile => {
+        if (tileMap[tile.name]) tile.name = tileMap[tile.name];
+      });
+      if (projectMap[state.project.name]) state.project.name = projectMap[state.project.name];
+      [
+        ["project", "notes"],
+        ["plan", "acceptedInput"],
+        ["plan", "preprocessingNote"],
+        ["ai", "analysisStatus"],
+        ["ai", "outputSummary"],
+        ["site", "notes"],
+        ["weather", "aiNote"],
+        ["userTest", "profile"],
+        ["userTest", "task"],
+        ["userTest", "measures"]
+      ].forEach(([group, key]) => {
+        if (textMap[state[group]?.[key]]) state[group][key] = textMap[state[group][key]];
+      });
+    }
+
+    function tileById(id) {
+      return state.tiles.find(item => item.id === id) || state.tiles[0];
+    }
+
+    function roomGrossArea(item) {
+      if (item.shape === "manual") return Math.max(0, toNumber(item.manualArea));
+      const base = Math.max(0, toNumber(item.length) * toNumber(item.width));
+      if (item.shape === "l-shape") {
+        return Math.max(0, base - Math.max(0, toNumber(item.cutLength) * toNumber(item.cutWidth)));
+      }
+      return base;
+    }
+
+    function roomPerimeter(item) {
+      if (toNumber(item.perimeter) > 0) return toNumber(item.perimeter);
+      const length = Math.max(0, toNumber(item.length));
+      const width = Math.max(0, toNumber(item.width));
+      if (!length || !width) return 0;
+      if (item.shape === "l-shape") return 2 * (length + width);
+      return 2 * (length + width);
+    }
+
+    function roomCalc(item) {
+      const gross = roomGrossArea(item);
+      const deduction = Math.min(gross, Math.max(0, toNumber(item.obstacleArea)));
+      const floorArea = Math.max(0, gross - deduction);
+      const skirtingLength = item.skirting ? roomPerimeter(item) : 0;
+      const skirtingArea = skirtingLength * Math.max(0, toNumber(state.settings.skirtingHeight));
+      const tileArea = floorArea + skirtingArea;
+      const tileItem = tileById(item.tileId);
+      const eachTileArea = Math.max(0.0001, toNumber(tileItem?.length) * toNumber(tileItem?.width));
+      const areaWithWaste = tileArea * (1 + Math.max(0, toNumber(state.settings.wastePercent)) / 100);
+      const pieces = Math.ceil(areaWithWaste / eachTileArea);
+      const boxes = Math.ceil(pieces / Math.max(1, toNumber(tileItem?.piecesPerBox, 1)));
+      const tileCost = boxes * Math.max(0, toNumber(tileItem?.costPerBox));
+      return { gross, deduction, floorArea, skirtingLength, skirtingArea, tileArea, areaWithWaste, pieces, boxes, tileCost };
+    }
+
+    function calculateTotals() {
+      const rooms = state.rooms.map(item => ({ room: item, calc: roomCalc(item) }));
+      const floorArea = rooms.reduce((sum, item) => sum + item.calc.floorArea, 0);
+      const tileArea = rooms.reduce((sum, item) => sum + item.calc.tileArea, 0);
+      const areaWithWaste = rooms.reduce((sum, item) => sum + item.calc.areaWithWaste, 0);
+      const tilePieces = rooms.reduce((sum, item) => sum + item.calc.pieces, 0);
+      const tileBoxes = rooms.reduce((sum, item) => sum + item.calc.boxes, 0);
+      const tileCost = rooms.reduce((sum, item) => sum + item.calc.tileCost, 0);
+      const skirtingLength = rooms.reduce((sum, item) => sum + item.calc.skirtingLength, 0);
+      const adhesiveBags = Math.ceil((areaWithWaste / Math.max(0.01, toNumber(state.settings.adhesiveCoveragePerBag))) * Math.max(0, toNumber(state.settings.thicknessFactor, 1)));
+      const adhesiveCost = adhesiveBags * Math.max(0, toNumber(state.settings.adhesiveCostPerBag));
+      const groutKg = Math.ceil(tileArea * Math.max(0, toNumber(state.settings.groutKgPerM2)) * 10) / 10;
+      const groutCost = groutKg * Math.max(0, toNumber(state.settings.groutCostPerKg));
+      const cementBags = Math.ceil(floorArea * Math.max(0, toNumber(state.settings.cementBagPerM2)));
+      const cementCost = cementBags * Math.max(0, toNumber(state.settings.cementCostPerBag));
+      const sandM3 = floorArea * Math.max(0, toNumber(state.settings.sandM3PerM2));
+      const sandCost = sandM3 * Math.max(0, toNumber(state.settings.sandCostPerM3));
+      const materialCost = tileCost + adhesiveCost + groutCost + cementCost + sandCost;
+      return {
+        rooms,
+        roomCount: state.rooms.length,
+        floorArea,
+        tileArea,
+        areaWithWaste,
+        tilePieces,
+        tileBoxes,
+        tileCost,
+        skirtingLength,
+        adhesiveBags,
+        adhesiveCost,
+        groutKg,
+        groutCost,
+        cementBags,
+        cementCost,
+        sandM3,
+        sandCost,
+        materialCost
+      };
+    }
+
+    function calculateSchedule(totals) {
+      const workers = Math.max(1, toNumber(state.schedule.workers, 1));
+      const productivity = Math.max(0.1, toNumber(state.schedule.productivityPerWorker, 1));
+      const dailyOutput = workers * productivity;
+      const baseDays = totals.floorArea / dailyOutput;
+      const riskPercent = (
+        toNumber(state.schedule.weatherDelayPercent) * 0.35 +
+        toNumber(state.schedule.workerAbsencePercent) * 0.25 +
+        toNumber(state.schedule.materialRiskPercent) * 0.25 +
+        toNumber(state.schedule.equipmentRiskPercent) * 0.15 +
+        realWorldRiskPercent() +
+        liveWeatherRiskPercent()
+      );
+      const adjustedDays = baseDays * Math.max(0.1, toNumber(state.schedule.complexityFactor, 1)) * (1 + riskPercent / 100);
+      const bufferDays = adjustedDays * Math.max(0, toNumber(state.schedule.bufferPercent)) / 100;
+      const finalDays = adjustedDays + bufferDays + Math.max(0, toNumber(state.schedule.publicHolidayDays));
+      const targetDays = Math.max(1, toNumber(state.schedule.targetDays, 1));
+      const recommendedWorkers = Math.max(1, Math.ceil(totals.floorArea / (targetDays * productivity)));
+      const level = riskPercent >= 35 ? "High" : riskPercent >= 16 ? "Medium" : "Low";
+      return { dailyOutput, baseDays, riskPercent, adjustedDays, bufferDays, finalDays, recommendedWorkers, level };
+    }
+
+    function liveWeatherRiskPercent() {
+      if (!state.weather.enabled || !state.weather.current) return 0;
+      let risk = 0;
+      const exposure = state.site.workExposure || "Mixed indoor/outdoor";
+      const exposureFactor = exposure.includes("Outdoor") ? 1.35 : exposure.includes("Mixed") ? 0.85 : 0.28;
+      const current = state.weather.current;
+      if (toNumber(current.precipitation) > 0 || rainCode(current.weather_code)) risk += 8;
+      if (toNumber(current.relative_humidity_2m) >= 88) risk += 4;
+      if (toNumber(current.temperature_2m) >= 34) risk += 3;
+      if (toNumber(current.wind_speed_10m) >= 28 || toNumber(current.wind_gusts_10m) >= 38) risk += 4;
+
+      const dailyRisk = state.weather.daily.slice(0, 4).reduce((sum, day) => {
+        let score = 0;
+        if (toNumber(day.precipitation_sum) >= 10) score += 7;
+        else if (toNumber(day.precipitation_sum) >= 3) score += 4;
+        if (toNumber(day.precipitation_probability_max) >= 75) score += 5;
+        else if (toNumber(day.precipitation_probability_max) >= 50) score += 3;
+        if (toNumber(day.wind_speed_10m_max) >= 30) score += 3;
+        if (toNumber(day.temperature_2m_max) >= 35) score += 2;
+        return sum + score;
+      }, 0) / Math.max(1, Math.min(4, state.weather.daily.length || 1));
+
+      return Math.min(35, (risk + dailyRisk) * exposureFactor);
+    }
+
+    function rainCode(code) {
+      return [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99].includes(Number(code));
+    }
+
+    function weatherCodeText(code) {
+      const map = {
+        0: "Clear",
+        1: "Mainly clear",
+        2: "Partly cloudy",
+        3: "Overcast",
+        45: "Fog",
+        48: "Depositing rime fog",
+        51: "Light drizzle",
+        53: "Drizzle",
+        55: "Dense drizzle",
+        61: "Slight rain",
+        63: "Rain",
+        65: "Heavy rain",
+        80: "Rain showers",
+        81: "Rain showers",
+        82: "Violent rain showers",
+        95: "Thunderstorm",
+        96: "Thunderstorm with hail",
+        99: "Thunderstorm with hail"
+      };
+      return map[Number(code)] || "Weather data";
+    }
+
+    function workabilityLevel() {
+      const risk = liveWeatherRiskPercent();
+      if (risk >= 18) return "Stop outdoor work";
+      if (risk >= 8) return "Caution";
+      return "Good";
+    }
+
+    function realWorldRiskPercent() {
+      let risk = 0;
+      if (state.site.scaleReliability === "Low") risk += 4;
+      if (state.site.drawingQuality.includes("Poor")) risk += 4;
+      if (state.site.substrateLevelness === "Uneven") risk += 5;
+      if (state.site.tilePattern === "Diagonal layout") risk += 3;
+      if (state.site.tilePattern === "Intricate / mixed pattern") risk += 6;
+      if (state.site.accessConstraint.includes("Occupied")) risk += 3;
+      if (state.site.wetArea.includes("Mixed")) risk += 2;
+      return risk;
+    }
+
+    function recommendedWastePercent() {
+      let waste = state.site.tilePattern === "Intricate / mixed pattern" ? 20 : state.site.tilePattern === "Diagonal layout" ? 15 : 10;
+      if (state.site.substrateLevelness === "Uneven") waste += 3;
+      if (state.site.scaleReliability === "Low") waste += 2;
+      if (state.site.drawingQuality.includes("Poor")) waste += 3;
+      if (state.site.accessConstraint.includes("Occupied")) waste += 2;
+      return waste;
+    }
+
+    async function refreshWeather() {
+      const query = (state.weather.locationQuery || state.project.location || "").trim();
+      if (!query) {
+        state.weather.status = "Location required";
+        state.weather.error = "Enter a city, district, or project location first.";
+        render();
+        return;
+      }
+
+      state.weather.status = "Loading";
+      state.weather.error = "";
+      render();
+
+      try {
+        const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`;
+        const geoResponse = await fetch(geoUrl);
+        if (!geoResponse.ok) throw new Error(`Geocoding failed (${geoResponse.status})`);
+        const geo = await geoResponse.json();
+        const place = geo.results?.[0];
+        if (!place) throw new Error("Location not found");
+
+        const forecastUrl = new URL("https://api.open-meteo.com/v1/forecast");
+        forecastUrl.searchParams.set("latitude", place.latitude);
+        forecastUrl.searchParams.set("longitude", place.longitude);
+        forecastUrl.searchParams.set("current", "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,cloud_cover,wind_speed_10m,wind_gusts_10m");
+        forecastUrl.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max");
+        forecastUrl.searchParams.set("forecast_days", "7");
+        forecastUrl.searchParams.set("timezone", "auto");
+
+        const forecastResponse = await fetch(forecastUrl);
+        if (!forecastResponse.ok) throw new Error(`Forecast failed (${forecastResponse.status})`);
+        const forecast = await forecastResponse.json();
+
+        state.weather.resolvedName = [place.name, place.admin1, place.country].filter(Boolean).join(", ");
+        state.weather.latitude = place.latitude;
+        state.weather.longitude = place.longitude;
+        state.weather.current = forecast.current || null;
+        state.weather.daily = normalizeDailyForecast(forecast.daily || {});
+        state.weather.lastUpdated = new Date().toISOString();
+        state.weather.status = "Live";
+        state.weather.aiNote = buildWeatherAiNote();
+        toast(t("Live weather") + " OK");
+      } catch (error) {
+        state.weather.status = "Error";
+        state.weather.error = error.message || "Weather request failed";
+        state.weather.aiNote = "Weather data could not be refreshed. Keep manual weather delay or try another location.";
+      }
+      render();
+    }
+
+    function normalizeDailyForecast(daily) {
+      const days = daily.time || [];
+      return days.map((time, index) => ({
+        time,
+        weather_code: daily.weather_code?.[index],
+        temperature_2m_max: daily.temperature_2m_max?.[index],
+        temperature_2m_min: daily.temperature_2m_min?.[index],
+        precipitation_sum: daily.precipitation_sum?.[index],
+        precipitation_probability_max: daily.precipitation_probability_max?.[index],
+        wind_speed_10m_max: daily.wind_speed_10m_max?.[index]
+      }));
+    }
+
+    function buildWeatherAiNote() {
+      const level = workabilityLevel();
+      const risk = liveWeatherRiskPercent();
+      if (level === "Stop outdoor work") {
+        return "AI adjustment: outdoor tiling should be postponed or moved indoors because live forecast indicates high rain/wind risk.";
+      }
+      if (level === "Caution") {
+        return `AI adjustment: add schedule buffer because live weather adds ${percent(risk)} risk. Prioritize indoor work, surface preparation, procurement, or grouting checks.`;
+      }
+      return "AI adjustment: weather is acceptable for the selected work exposure. Keep normal buffer and monitor forecast before site work.";
+    }
+
+    function calculateEvaluation(totals, schedule) {
+      const e = state.evaluation;
+      const materialBase = Math.max(0.01, toNumber(e.actualMaterialCost));
+      const durationBase = Math.max(0.01, toNumber(e.actualDuration));
+      const aiMaterialError = Math.abs(toNumber(e.aiMaterialCost) - materialBase) / materialBase * 100;
+      const manualMaterialError = Math.abs(toNumber(e.manualMaterialCost) - materialBase) / materialBase * 100;
+      const aiDurationError = Math.abs(toNumber(e.aiDuration) - durationBase) / durationBase * 100;
+      const manualDurationError = Math.abs(toNumber(e.manualDuration) - durationBase) / durationBase * 100;
+      const timeSaving = toNumber(e.manualCalculationMinutes) > 0
+        ? Math.max(0, (toNumber(e.manualCalculationMinutes) - toNumber(e.aiCalculationMinutes)) / toNumber(e.manualCalculationMinutes) * 100)
+        : 0;
+      const modelMaterialError = materialBase > 0 ? Math.abs(totals.materialCost - materialBase) / materialBase * 100 : 0;
+      const modelDurationError = durationBase > 0 ? Math.abs(schedule.finalDays - durationBase) / durationBase * 100 : 0;
+      return { aiMaterialError, manualMaterialError, aiDurationError, manualDurationError, timeSaving, modelMaterialError, modelDurationError };
+    }
+
+    function runSimulation() {
+      const n = Math.max(1, Math.round(toNumber(state.simulation.sampleProjects, 1)));
+      const rows = [];
+      for (let index = 0; index < n; index++) {
+        const aiMaterial = simulatedError(state.simulation.aiMaterialErrorMean);
+        const manualMaterial = simulatedError(state.simulation.manualMaterialErrorMean);
+        const aiDuration = simulatedError(state.simulation.aiDurationErrorMean);
+        const manualDuration = simulatedError(state.simulation.manualDurationErrorMean);
+        const aiMinutes = simulatedPositive(state.simulation.aiMinutesMean);
+        const manualMinutes = simulatedPositive(state.simulation.manualMinutesMean);
+        rows.push({ aiMaterial, manualMaterial, aiDuration, manualDuration, aiMinutes, manualMinutes });
+      }
+
+      const aiMaterialErrorMean = average(rows.map(row => row.aiMaterial));
+      const manualMaterialErrorMean = average(rows.map(row => row.manualMaterial));
+      const aiDurationErrorMean = average(rows.map(row => row.aiDuration));
+      const manualDurationErrorMean = average(rows.map(row => row.manualDuration));
+      const aiMinutesMean = average(rows.map(row => row.aiMinutes));
+      const manualMinutesMean = average(rows.map(row => row.manualMinutes));
+      const timeSavingMean = manualMinutesMean > 0 ? Math.max(0, (manualMinutesMean - aiMinutesMean) / manualMinutesMean * 100) : 0;
+      const aiWinRateMaterial = Math.round(rows.filter(row => row.aiMaterial <= row.manualMaterial).length / n * 100);
+      const aiWinRateDuration = Math.round(rows.filter(row => row.aiDuration <= row.manualDuration).length / n * 100);
+
+      state.simulation.lastRun = {
+        date: new Date().toISOString(),
+        sampleProjects: n,
+        aiMaterialErrorMean,
+        manualMaterialErrorMean,
+        aiDurationErrorMean,
+        manualDurationErrorMean,
+        aiMinutesMean,
+        manualMinutesMean,
+        timeSavingMean,
+        aiWinRateMaterial,
+        aiWinRateDuration
+      };
+      toast(t("Simulation completed"));
+    }
+
+    function simulatedError(mean) {
+      const base = Math.max(0, toNumber(mean));
+      const spread = Math.max(1.5, base * 0.35);
+      const value = base + (Math.random() - 0.5) * 2 * spread;
+      return Math.max(0, value);
+    }
+
+    function simulatedPositive(mean) {
+      const base = Math.max(0.1, toNumber(mean, 1));
+      const spread = Math.max(0.5, base * 0.25);
+      return Math.max(0.1, base + (Math.random() - 0.5) * 2 * spread);
+    }
+
+    function average(values) {
+      return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+    }
+
+    function simulationNarrative(result) {
+      if (state.language === "zh") {
+        return `合成模拟摘要
+
+样本项目数量：${result.sampleProjects}
+AI 辅助材料误差：${percent(result.aiMaterialErrorMean)}
+传统方法材料误差：${percent(result.manualMaterialErrorMean)}
+AI 辅助工期误差：${percent(result.aiDurationErrorMean)}
+传统方法工期误差：${percent(result.manualDurationErrorMean)}
+AI 计算时间：${fmt(result.aiMinutesMean, 1)} 分钟
+传统方法计算时间：${fmt(result.manualMinutesMean, 1)} 分钟
+预计节省时间：${percent(result.timeSavingMean)}
+AI 在 ${result.aiWinRateMaterial}% 的合成案例中材料准确率更好。
+AI 在 ${result.aiWinRateDuration}% 的合成案例中工期准确率更好。
+
+解释
+这不是最终研究证据，而是用于规划 Python 大量模拟的前期实验。它帮助你定义样本数量、假设范围、误差指标和比较方法。`;
+      }
+      return `Synthetic Simulation Summary
+
+Sample projects: ${result.sampleProjects}
+AI-assisted material error: ${percent(result.aiMaterialErrorMean)}
+Conventional material error: ${percent(result.manualMaterialErrorMean)}
+AI-assisted duration error: ${percent(result.aiDurationErrorMean)}
+Conventional duration error: ${percent(result.manualDurationErrorMean)}
+AI calculation time: ${fmt(result.aiMinutesMean, 1)} minutes
+Conventional calculation time: ${fmt(result.manualMinutesMean, 1)} minutes
+Estimated time saving: ${percent(result.timeSavingMean)}
+AI wins material accuracy in ${result.aiWinRateMaterial}% of synthetic cases.
+AI wins duration accuracy in ${result.aiWinRateDuration}% of synthetic cases.
+
+Interpretation
+This is not final evidence. It is a planning simulation that helps define the assumptions, sample size, and expected comparison metrics before the Python-based experiment is written.`;
+    }
+
+    function render() {
+      renderBrand();
+      renderNav();
+      renderSummary();
+      renderView();
+      requestAnimationFrame(drawPlan);
+      saveState();
+    }
+
+    function renderBrand() {
+      document.title = t("AI-Assisted Tile Estimation Prototype");
+      const brand = document.getElementById("brand");
+      if (brand) {
+        brand.innerHTML = `
+          <p class="eyebrow">${t("Research prototype")}</p>
+          <h1>${t("AI-Assisted Tile Estimation Prototype")}</h1>
+          <p class="hint">${t("A thesis prototype comparing generative AI-assisted and conventional tiling estimation for Malaysian small contractors.")}</p>
+        `;
+      }
+      const languageSelect = document.getElementById("languageSelect");
+      if (languageSelect) languageSelect.value = state.language;
+      const languageLabel = document.getElementById("languageLabel");
+      if (languageLabel) {
+        languageLabel.childNodes[0].nodeValue = `${t("Language")} `;
+      }
+      const resetButton = document.getElementById("resetDemoButton");
+      if (resetButton) resetButton.textContent = t("Reset to Chinese demo");
+    }
+
+    function renderNav() {
+      document.getElementById("nav").innerHTML = navItems.map(([id, icon, label]) => `
+        <button type="button" class="${state.activeView === id ? "active" : ""}" data-action="view" data-view="${id}">
+          <span class="nav-icon" aria-hidden="true">${icon}</span>
+          <span>${t(label)}</span>
+        </button>
+      `).join("");
+    }
+
+    function renderSummary() {
+      const totals = calculateTotals();
+      const schedule = calculateSchedule(totals);
+      document.getElementById("summary").innerHTML = `
+        ${metric(t("Net floor area"), `${fmt(totals.floorArea)} m2`, "accent")}
+        ${metric(t("Tile area with waste"), `${fmt(totals.areaWithWaste)} m2`)}
+        ${metric(t("Tile boxes"), fmt(totals.tileBoxes, 0))}
+        ${metric(t("Material cost"), money(totals.materialCost), "accent")}
+        ${metric(t("Final duration"), `${fmt(schedule.finalDays, 1)} ${state.language === "zh" ? "天" : "days"}`, schedule.level === "High" ? "warn" : "")}
+      `;
+    }
+
+    function metric(label, value, tone = "") {
+      return `<div class="metric ${tone}"><span>${t(label)}</span><strong>${value}</strong></div>`;
+    }
+
+    function renderView() {
+      const view = document.getElementById("view");
+      const map = {
+        overview: renderOverview,
+        project: renderProject,
+        ai: renderAI,
+        rooms: renderRooms,
+        materials: renderMaterials,
+        schedule: renderSchedule,
+        weather: renderWeather,
+        evaluation: renderEvaluation,
+        simulation: renderSimulation,
+        report: renderReport
+      };
+      view.innerHTML = map[state.activeView]();
+    }
+
+    function renderHead(title, description, actions = "") {
+      return `
+        <div class="view-head">
+          <div>
+            <p class="eyebrow">${t("Planning workspace")}</p>
+            <h2>${t(title)}</h2>
+            <p class="hint">${t(description)}</p>
+          </div>
+          <div class="actions">${actions}</div>
+        </div>
+      `;
+    }
+
+    function renderOverview() {
+      const totals = calculateTotals();
+      const schedule = calculateSchedule(totals);
+      const evaluation = calculateEvaluation(totals, schedule);
+      return `
+        ${renderHead(t("Overview"), state.language === "zh" ? "核心结果、天气影响和论文评估集中在一页，方便测试和展示。" : "Key outputs, weather impact, and research metrics in one clean view.", `
+          <button class="btn primary" type="button" data-action="view" data-view="rooms">${t("Edit rooms")}</button>
+          <button class="btn" type="button" data-action="view" data-view="report">${t("Open report")}</button>
+        `)}
+        <div class="layout">
+          <div class="grid">
+            <div class="canvas-box">
+              <canvas id="planCanvas" aria-label="Diagram preview of entered rooms"></canvas>
+            </div>
+            <div class="grid three">
+              ${metric(t("Estimated tile pieces"), fmt(totals.tilePieces, 0))}
+              ${metric(t("Adhesive bags"), `${fmt(totals.adhesiveBags, 0)} ${state.language === "zh" ? "包" : "bags"}`)}
+              ${metric(t("Delay risk"), `${t(schedule.level)} (${percent(schedule.riskPercent)})`, schedule.level === "High" ? "warn" : "")}
+            </div>
+            <div class="panel">
+              <div class="section-title">
+                <h3>${t("Live weather")}</h3>
+                <span class="tag ${workabilityLevel() === "Good" ? "ok" : workabilityLevel() === "Caution" ? "warn" : "danger"}">${t(workabilityLevel())}</span>
+              </div>
+              <div class="grid three">
+                ${metric(t("Weather risk add-on"), percent(liveWeatherRiskPercent()), liveWeatherRiskPercent() >= 12 ? "warn" : "")}
+                ${metric(t("Workability"), t(workabilityLevel()))}
+                ${metric(t("Weather status"), t(state.weather.status))}
+              </div>
+            </div>
+            <div class="panel">
+              <div class="section-title">
+                <h3>${t("Thesis objective dashboard")}</h3>
+                <span class="tag ok">${t("AI-assisted vs conventional")}</span>
+              </div>
+              <div class="grid three">
+                ${metric(t("Objective 1: accuracy"), `AI ${percent(evaluation.aiMaterialError)} / manual ${percent(evaluation.manualMaterialError)}`)}
+                ${metric(t("Objective 2: time"), state.language === "zh" ? `节省 ${percent(evaluation.timeSaving)}` : `${percent(evaluation.timeSaving)} saved`, "accent")}
+                ${metric(t("Objective 3: usability"), state.ai.humanReview ? t("Human review enabled") : t("AI direct output"), state.ai.humanReview ? "" : "warn")}
+              </div>
+            </div>
+            <div class="panel">
+              <div class="section-title">
+                <h3>${t("Research evaluation snapshot")}</h3>
+                <span class="tag ${evaluation.modelMaterialError <= 10 ? "ok" : "warn"}">${t("This model material error")} ${percent(evaluation.modelMaterialError)}</span>
+              </div>
+              <div class="grid three">
+                ${metric(t("Model duration error"), percent(evaluation.modelDurationError))}
+                ${metric(t("AI vs actual material error"), percent(evaluation.aiMaterialError))}
+                ${metric(t("Time saving"), percent(evaluation.timeSaving), "accent")}
+              </div>
+            </div>
+          </div>
+          <aside class="panel">
+            <h3>${t("Current assumptions")}</h3>
+            <ul class="assumption-list">
+              <li><span>${t("Tile waste allowance")}</span><strong>${percent(state.settings.wastePercent)}</strong></li>
+              <li><span>${t("Adhesive coverage per 50kg bag")}</span><strong>${fmt(state.settings.adhesiveCoveragePerBag)} m2</strong></li>
+              <li><span>${t("Thickness adjustment factor")}</span><strong>${fmt(state.settings.thicknessFactor, 2)}x</strong></li>
+              <li><span>${t("Worker productivity")}</span><strong>${fmt(state.schedule.productivityPerWorker, 1)} ${state.language === "zh" ? "m2/天" : "m2/day"}</strong></li>
+              <li><span>${t("Recommended workers for target")}</span><strong>${schedule.recommendedWorkers}</strong></li>
+            </ul>
+          </aside>
+        </div>
+      `;
+    }
+
+    function renderProject() {
+      return `
+        ${renderHead("Project and floor plan", "Store the project case, upload the drawing, and prepare the input required by both conventional and AI-assisted methods.", `
+          <button class="btn primary" type="button" data-action="view" data-view="ai">${t("Open AI pipeline")}</button>
+        `)}
+        <div class="layout">
+          <div class="grid">
+            <div class="panel">
+              <h3>${t("Project details")}</h3>
+              <div class="grid two">
+                ${input("Project name", "project.name")}
+                ${input("Client", "project.client")}
+                ${input("Location", "project.location")}
+                ${input("Estimate date", "project.date", "date")}
+              </div>
+              <label style="margin-top:12px;">${t("Notes")}
+                <textarea data-bind="project.notes">${h(state.project.notes)}</textarea>
+              </label>
+            </div>
+            <div class="panel">
+              <div class="section-title">
+                <h3>${t("Research objective mapping")}</h3>
+                <span class="tag ok">${t("Thesis aligned")}</span>
+              </div>
+              <ul class="assumption-list">
+                <li><span>${t("Objective 1")}</span><strong>${t("Material accuracy")}</strong></li>
+                <li><span>${t("Objective 2")}</span><strong>${t("Workflow preparation time")}</strong></li>
+                <li><span>${t("Objective 3")}</span><strong>${t("Practical usability")}</strong></li>
+                <li><span>${t("Comparison design")}</span><strong>${t("AI vs conventional")}</strong></li>
+              </ul>
+            </div>
+            <div class="panel">
+              <div class="section-title">
+                <h3>${t("Real-world site conditions")}</h3>
+                <span class="tag warn">${t("Risk-linked")}</span>
+              </div>
+              <div class="grid three">
+                ${selectInput("Drawing quality", "site.drawingQuality", ["Clean digital PDF", "Mixed / site photo + scanned PDF", "Poor scan / unclear dimension"])}
+                ${selectInput("Input reality", "site.fileTypeReality", ["PDF or image preferred; CAD requires conversion", "CAD/DWG/DXF from designer", "Phone photo or scan from contractor", "Spreadsheet/manual measurement only"])}
+                ${selectInput("Scale reliability", "site.scaleReliability", ["High", "Medium", "Low"])}
+                ${selectInput("Substrate levelness", "site.substrateLevelness", ["Flat", "Normal", "Uneven"])}
+                ${selectInput("Tile pattern", "site.tilePattern", ["Straight layout", "Diagonal layout", "Intricate / mixed pattern"])}
+                ${selectInput("Access constraint", "site.accessConstraint", ["Empty site / new work", "Occupied house / renovation", "Tight access / high-rise"])}
+                ${selectInput("Work exposure", "site.workExposure", ["Indoor only", "Mixed indoor/outdoor", "Outdoor work"])}
+                ${selectInput("Wet-area condition", "site.wetArea", ["Dry areas only", "Wet areas only", "Mixed indoor wet and dry areas"])}
+              </div>
+              <div style="height:12px;"></div>
+              ${textInput("Reality notes", "site.notes", 4)}
+            </div>
+          </div>
+          <aside class="panel">
+            <h3>${t("Floor plan preview")}</h3>
+            <label>${t("Upload drawing file")}
+              <input id="planFile" type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,image/tiff,application/pdf,.pdf,.png,.jpg,.jpeg,.webp,.heic,.heif,.tif,.tiff,.dwg,.dxf,.ifc,.rvt,.skp,.svg,.doc,.docx,.xls,.xlsx,.csv">
+            </label>
+            <div style="height:12px;"></div>
+            ${state.plan.previewData ? `
+              <div class="plan-preview"><img src="${state.plan.previewData}" alt="Uploaded floor plan preview"></div>
+            ` : `
+              <div class="plan-preview"><span class="hint">${state.plan.fileName ? h(state.plan.fileName) : t("No image preview uploaded.")}</span></div>
+            `}
+            <div style="height:12px;"></div>
+            <div class="actions">
+              <button class="btn primary" type="button" data-action="view" data-view="ai">${state.language === "zh" ? "下一步：AI 识别图纸" : "Next: AI analysis"}</button>
+            </div>
+            <div style="height:12px;"></div>
+            <ul class="assumption-list">
+              <li><span>${t("Accepted input")}</span><strong>${h(state.plan.acceptedInput)}</strong></li>
+              <li><span>${t("Pre-processing")}</span><strong>${t("Backend conversion")}</strong></li>
+              <li><span>${t("Recommended waste")}</span><strong>${percent(recommendedWastePercent())}</strong></li>
+              <li><span>${t("Real-world risk add-on")}</span><strong>${percent(realWorldRiskPercent())}</strong></li>
+            </ul>
+            <div style="height:12px;"></div>
+            <label>${t("Drawing scale note (%)")}
+              <input type="number" min="1" step="1" data-bind="plan.scale" value="${h(state.plan.scale)}">
+            </label>
+            <div style="height:12px;"></div>
+            ${textInput("File pre-processing note", "plan.preprocessingNote", 4)}
+          </aside>
+        </div>
+      `;
+    }
+
+    function renderAI() {
+      const totals = calculateTotals();
+      const schedule = calculateSchedule(totals);
+      const draftRows = state.plan.aiDraft.length ? state.plan.aiDraft.map(item => `
+        <tr>
+          <td>${h(item.name)}</td>
+          <td>${h(t(item.roomType))}</td>
+          <td>${h(t(item.shape))}</td>
+          <td>${fmt(item.area)} m2</td>
+          <td><span class="tag ${item.confidence >= state.ai.confidenceThreshold ? "ok" : "warn"}">${percent(item.confidence)}</span></td>
+        </tr>
+      `).join("") : `<tr><td colspan="5">${state.language === "zh" ? "还没有 AI 识别结果。请先上传图纸，然后点击 Gemini 识别图纸。" : "No AI result yet. Upload a drawing, then run Gemini analysis."}</td></tr>`;
+
+      return `
+        ${renderHead(state.language === "zh" ? "AI 辅助识别流程" : "AI-assisted workflow", state.language === "zh" ? "上传图纸后调用 Gemini 后端识别房间、面积、风险，再送入人工复核。" : "Upload a drawing, call the Gemini backend, then send structured results to manual review.", `
+          <button class="btn primary" type="button" data-action="analyze-gemini">${state.language === "zh" ? "Gemini 识别图纸" : "Analyze with Gemini"}</button>
+          <button class="btn" type="button" data-action="import-ai" ${state.plan.aiDraft.length ? "" : "disabled"}>${state.language === "zh" ? "导入人工复核" : "Send to manual review"}</button>
+          <button class="btn warn" type="button" data-action="mock-ai">${state.language === "zh" ? "演示模拟" : "Demo simulation"}</button>
+        `)}
+        <div class="grid">
+          <div class="flow">
+            <div class="flow-step"><strong>${state.language === "zh" ? "1. 图纸输入" : "1. Drawing input"}</strong><span>${state.language === "zh" ? "上传 PDF/图片图纸，记录比例和项目资料。" : "Upload PDF/image floor plan, capture scale notes, and prepare drawing metadata."}</span></div>
+            <div class="flow-step"><strong>${state.language === "zh" ? "2. Gemini 识别" : "2. Gemini extraction"}</strong><span>${state.language === "zh" ? "识别房间、尺寸、不规则形状、柱位、空洞和风险区域。" : "Detect rooms, dimensions, irregular shapes, columns, voids, and warning zones."}</span></div>
+            <div class="flow-step"><strong>${state.language === "zh" ? "3. 结构化结果" : "3. Structured JSON"}</strong><span>${state.language === "zh" ? "把图纸证据转换成可复核的工程量 JSON。" : "Convert extracted drawing evidence into validated quantity take-off JSON."}</span></div>
+            <div class="flow-step"><strong>${state.language === "zh" ? "4. 人工复核" : "4. Human review"}</strong><span>${state.language === "zh" ? "低置信度房间必须由承包商确认后才能用于采购。" : "Contractor validates uncertain rooms before material and workflow outputs are trusted."}</span></div>
+            <div class="flow-step"><strong>${state.language === "zh" ? "5. 最终输出" : "5. Final output"}</strong><span>${state.language === "zh" ? "输出瓷砖、胶、成本、人工工期、天气风险和施工顺序。" : "Generate tile quantities, adhesive, cost, labour duration, risk, and workflow sequence."}</span></div>
+          </div>
+
+          <div class="layout">
+            <div class="grid">
+              <div class="panel">
+                <h3>${state.language === "zh" ? "Gemini 后端连接" : "Gemini backend connection"}</h3>
+                <div class="grid three">
+                  ${selectInput("Provider", "ai.provider", ["Gemini API"])}
+                  ${selectInput("AI mode", "ai.mode", ["Gemini vision + estimator", "Gemini PDF + estimator", "Manual extraction + Gemini planner"])}
+                  ${selectInput("Model target", "ai.modelName", ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3.1-flash-live-preview"])}
+                  ${selectInput("Prompt strategy", "ai.promptStrategy", ["Modular prompt chain", "Single prompt", "Few-shot prompt"])}
+                  ${input("Confidence threshold (%)", "ai.confidenceThreshold", "number", "1")}
+                  ${selectInput("API key placement", "ai.apiPlacement", ["Backend only", "Local prototype only"])}
+                  ${input(state.language === "zh" ? "后端 URL（空白则用 /api/analyze）" : "Backend URL (blank uses /api/analyze)", "ai.backendUrl")}
+                  <label>${t("Human review")}
+                    <span class="check-row"><input type="checkbox" data-bind="ai.humanReview" ${state.ai.humanReview ? "checked" : ""}> ${t("Required before final estimate")}</span>
+                  </label>
+                </div>
+                <div style="height:12px;"></div>
+                <ul class="assumption-list">
+                  <li><span>${state.language === "zh" ? "上传状态" : "Upload status"}</span><strong>${state.plan.fileName ? h(state.plan.fileName) : state.language === "zh" ? "未上传" : "Not uploaded"}</strong></li>
+                  <li><span>${state.language === "zh" ? "识别状态" : "Analysis status"}</span><strong>${h(statusText(state.ai.analysisStatus || state.plan.aiStatus))}</strong></li>
+                  <li><span>${t("Deployment")}</span><strong>${location.protocol === "file:" ? t("Local file, no same-origin backend") : t("Online page")}</strong></li>
+                </ul>
+              </div>
+              <div class="panel">
+                <div class="section-title">
+                  <h3>${t("File compatibility strategy")}</h3>
+                  <span class="tag ok">${t("Gemini-first")}</span>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>${t("Input type")}</th><th>${t("Reality use")}</th><th>${t("Processing path")}</th></tr></thead>
+                    <tbody>
+                      <tr><td>${t("PDF drawing")}</td><td>${t("Common consultant/contractor file")}</td><td>${t("Gemini Files API / document processing")}</td></tr>
+                      <tr><td>${t("PNG/JPEG/WEBP/HEIC/HEIF")}</td><td>${t("Exported drawing or site phone photo")}</td><td>${t("Gemini image understanding")}</td></tr>
+                      <tr><td>${t("DWG/DXF/CAD/native model")}</td><td>${t("Designer or subcontractor source file")}</td><td>${t("Backend convert to PDF/PNG, then Gemini")}</td></tr>
+                      <tr><td>${t("Excel/CSV/manual list")}</td><td>${t("Conventional method baseline")}</td><td>${t("Parse as manual quantity input")}</td></tr>
+                      <tr><td>${t("Low-quality scan")}</td><td>${t("Real renovation condition")}</td><td>${t("Pre-clean image, ask Gemini for uncertainty flags, require human review")}</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="panel">
+                <h3>${t("Prompt modules for backend prototype")}</h3>
+                <div class="grid">
+                  ${textInput("Drawing interpretation prompt", "ai.drawingPrompt", 3)}
+                  ${textInput("Material estimation prompt", "ai.estimationPrompt", 3)}
+                  ${textInput("Workflow planning prompt", "ai.workflowPrompt", 3)}
+                </div>
+              </div>
+              <div class="panel">
+                <div class="section-title">
+                  <h3>${t("Structured AI extraction draft")}</h3>
+                  <span class="tag warn">${h(t(state.plan.aiStatus))}</span>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>${t("Room")}</th><th>${t("Type")}</th><th>${t("Shape")}</th><th>${t("Area")}</th><th>${t("Confidence")}</th></tr></thead>
+                    <tbody>${draftRows}</tbody>
+                  </table>
+                </div>
+                ${state.ai.lastRawResponse ? `<div style="height:12px;"></div><details><summary>${t("View raw Gemini summary")}</summary><div class="report">${h(state.ai.lastRawResponse)}</div></details>` : ""}
+              </div>
+            </div>
+            <aside class="panel">
+              <h3>${t("AI-assisted output preview")}</h3>
+              <ul class="assumption-list">
+                <li><span>${t("Current net floor area")}</span><strong>${fmt(totals.floorArea)} m2</strong></li>
+                <li><span>${t("Tile boxes")}</span><strong>${fmt(totals.tileBoxes, 0)}</strong></li>
+                <li><span>${t("Material cost")}</span><strong>${money(totals.materialCost)}</strong></li>
+                <li><span>${state.language === "zh" ? "工期" : "Duration"}</span><strong>${fmt(schedule.finalDays, 1)} ${state.language === "zh" ? "天" : "days"}</strong></li>
+                <li><span>${t("Risk level")}</span><strong>${t(schedule.level)}</strong></li>
+              </ul>
+              <div style="height:14px;"></div>
+              ${textInput("AI output note", "ai.outputSummary", 6)}
+            </aside>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderRooms() {
+      const totals = calculateTotals();
+      const cards = state.rooms.length ? state.rooms.map((item, index) => renderRoomCard(item, index)).join("") : `
+        <div class="empty">
+          <div>
+            <strong>${t("No rooms yet.")}</strong>
+            <p class="hint">${t("Add rooms manually or import the simulated AI draft from the Project view.")}</p>
+          </div>
+        </div>
+      `;
+      return `
+        ${renderHead("Rooms and manual correction", "This is the critical review layer. AI output should become editable room data before any cost or duration result is trusted.", `
+          <button class="btn primary" type="button" data-action="add-room">${t("Add room")}</button>
+        `)}
+        <div class="layout">
+          <div class="room-list">${cards}</div>
+          <aside class="panel">
+            <h3>${t("Room totals")}</h3>
+            <ul class="assumption-list">
+              <li><span>${t("Gross entered area")}</span><strong>${fmt(totals.rooms.reduce((sum, item) => sum + item.calc.gross, 0))} m2</strong></li>
+              <li><span>${t("Deductions")}</span><strong>${fmt(totals.rooms.reduce((sum, item) => sum + item.calc.deduction, 0))} m2</strong></li>
+              <li><span>${t("Net floor area")}</span><strong>${fmt(totals.floorArea)} m2</strong></li>
+              <li><span>${t("Skirting length")}</span><strong>${fmt(totals.skirtingLength)} m</strong></li>
+              <li><span>${t("Tile area incl. skirting")}</span><strong>${fmt(totals.tileArea)} m2</strong></li>
+            </ul>
+            <div style="height:14px;"></div>
+            <div class="canvas-box">
+              <canvas id="planCanvas" aria-label="Room diagram preview"></canvas>
+            </div>
+          </aside>
+        </div>
+      `;
+    }
+
+    function renderRoomCard(item, index) {
+      const calc = roomCalc(item);
+      return `
+        <article class="card room-card">
+          <header>
+            <div>
+              <h3>${h(item.name || `Room ${index + 1}`)}</h3>
+              <div class="room-total">
+                <span>${t("Gross")} ${fmt(calc.gross)} m2</span>
+                <span>${t("Net")} ${fmt(calc.floorArea)} m2</span>
+                <span>${t("Tiles")} ${fmt(calc.pieces, 0)} ${state.language === "zh" ? "片" : "pcs"}</span>
+                <span>${t("Boxes")} ${fmt(calc.boxes, 0)}</span>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn icon-btn" title="${t("Duplicate room")}" type="button" data-action="duplicate-room" data-room="${item.id}">+</button>
+              <button class="btn danger icon-btn" title="${t("Delete room")}" type="button" data-action="delete-room" data-room="${item.id}">x</button>
+            </div>
+          </header>
+          <div class="grid four">
+            ${roomInput(item, "Room name", "name")}
+            ${roomSelect(item, "Room type", "roomType", roomTypes.map(value => [value, value]))}
+            ${roomSelect(item, "Shape", "shape", shapeTypes)}
+            ${roomSelect(item, "Tile scheme", "tileId", state.tiles.map(tile => [tile.id, tile.name]))}
+          </div>
+          <div class="grid four">
+            ${roomInput(item, "Length (m)", "length", "number", "0.01")}
+            ${roomInput(item, "Width (m)", "width", "number", "0.01")}
+            ${roomInput(item, "L cut length (m)", "cutLength", "number", "0.01")}
+            ${roomInput(item, "L cut width (m)", "cutWidth", "number", "0.01")}
+          </div>
+          <div class="grid four">
+            ${roomInput(item, "Manual area (m2)", "manualArea", "number", "0.01")}
+            ${roomInput(item, "Manual perimeter (m)", "perimeter", "number", "0.01")}
+            ${roomInput(item, "Obstacle or void area (m2)", "obstacleArea", "number", "0.01")}
+            <label>${t("Skirting")}
+              <span class="check-row"><input type="checkbox" data-room="${item.id}" data-room-field="skirting" ${item.skirting ? "checked" : ""}> ${t("Include skirting area")}</span>
+            </label>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderMaterials() {
+      const totals = calculateTotals();
+      const rows = state.tiles.map(item => `
+        <tr>
+          <td><input data-tile="${item.id}" data-tile-field="name" value="${h(item.name)}"></td>
+          <td><input type="number" min="0.01" step="0.01" data-tile="${item.id}" data-tile-field="length" value="${h(item.length)}"></td>
+          <td><input type="number" min="0.01" step="0.01" data-tile="${item.id}" data-tile-field="width" value="${h(item.width)}"></td>
+          <td><input type="number" min="1" step="1" data-tile="${item.id}" data-tile-field="piecesPerBox" value="${h(item.piecesPerBox)}"></td>
+          <td><input type="number" min="0" step="0.01" data-tile="${item.id}" data-tile-field="costPerBox" value="${h(item.costPerBox)}"></td>
+          <td><button class="btn danger icon-btn" type="button" title="${t("Delete tile scheme")}" data-action="delete-tile" data-tile="${item.id}">x</button></td>
+        </tr>
+      `).join("");
+
+      return `
+        ${renderHead("Tiles and material assumptions", "Rates stay editable so you can align them with interview findings, supplier prices, and thesis assumptions.", `
+          <button class="btn primary" type="button" data-action="add-tile">${t("Add tile scheme")}</button>
+        `)}
+        <div class="grid">
+          <div class="panel">
+            <h3>${t("Tile schemes")}</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>${t("Name")}</th><th>${t("Length m")}</th><th>${t("Width m")}</th><th>${t("Pcs/box")}</th><th>${t("RM/box")}</th><th></th></tr></thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>
+          <div class="layout">
+            <div class="panel">
+              <h3>${t("Global material settings")}</h3>
+              <div class="grid four">
+                ${input("Waste allowance (%)", "settings.wastePercent", "number", "1")}
+                ${input("Skirting height (m)", "settings.skirtingHeight", "number", "0.01")}
+                ${input("Adhesive coverage / 50kg bag (m2)", "settings.adhesiveCoveragePerBag", "number", "0.01")}
+                ${input("Thickness factor", "settings.thicknessFactor", "number", "0.01")}
+              </div>
+              <div class="grid four" style="margin-top:12px;">
+                ${input("Adhesive cost / bag", "settings.adhesiveCostPerBag", "number", "0.01")}
+                ${input("Grout kg / m2", "settings.groutKgPerM2", "number", "0.01")}
+                ${input("Grout cost / kg", "settings.groutCostPerKg", "number", "0.01")}
+                ${input("Cement bags / m2", "settings.cementBagPerM2", "number", "0.001")}
+              </div>
+              <div class="grid two" style="margin-top:12px;">
+                ${input("Cement cost / bag", "settings.cementCostPerBag", "number", "0.01")}
+                ${input("Sand m3 / m2", "settings.sandM3PerM2", "number", "0.001")}
+                ${input("Sand cost / m3", "settings.sandCostPerM3", "number", "0.01")}
+              </div>
+            </div>
+            <aside class="panel">
+              <h3>${t("Material output")}</h3>
+              <ul class="assumption-list">
+                <li><span>${t("Tile cost")}</span><strong>${money(totals.tileCost)}</strong></li>
+                <li><span>${t("Configured waste")}</span><strong>${percent(state.settings.wastePercent)}</strong></li>
+                <li><span>${t("Recommended waste")}</span><strong>${percent(recommendedWastePercent())}</strong></li>
+                <li><span>${t("Adhesive")}</span><strong>${fmt(totals.adhesiveBags, 0)} ${state.language === "zh" ? "包" : "bags"}</strong></li>
+                <li><span>${t("Adhesive cost")}</span><strong>${money(totals.adhesiveCost)}</strong></li>
+                <li><span>${t("Grout")}</span><strong>${fmt(totals.groutKg, 1)} kg</strong></li>
+                <li><span>${t("Cement")}</span><strong>${fmt(totals.cementBags, 0)} ${state.language === "zh" ? "包" : "bags"}</strong></li>
+                <li><span>${t("Sand")}</span><strong>${fmt(totals.sandM3, 3)} m3</strong></li>
+                <li><span>${t("Total material cost")}</span><strong>${money(totals.materialCost)}</strong></li>
+              </ul>
+            </aside>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSchedule() {
+      const totals = calculateTotals();
+      const schedule = calculateSchedule(totals);
+      return `
+        ${renderHead(t("Schedule"), state.language === "zh" ? "工期会结合净面积、工人数、效率、复杂度、实时天气、工地风险和缓冲天数自动修正。" : "Duration is adjusted by area, manpower, productivity, complexity, live weather, site risk, and buffer days.", `
+          <button class="btn primary" type="button" data-action="refresh-weather">${t("Refresh weather")}</button>
+        `)}
+        <div class="layout">
+          <div class="panel">
+            <h3>${state.language === "zh" ? "人工与效率输入" : "Labour and productivity inputs"}</h3>
+            <div class="grid four">
+              ${input("Workers", "schedule.workers", "number", "1")}
+              ${input("Productivity / worker / day (m2)", "schedule.productivityPerWorker", "number", "0.1")}
+              ${input("Target duration (days)", "schedule.targetDays", "number", "0.1")}
+              ${input("Complexity factor", "schedule.complexityFactor", "number", "0.01")}
+            </div>
+            <div class="grid four" style="margin-top:12px;">
+              ${input("Weather delay (%)", "schedule.weatherDelayPercent", "number", "1")}
+              ${input("Worker absence (%)", "schedule.workerAbsencePercent", "number", "1")}
+              ${input("Material risk (%)", "schedule.materialRiskPercent", "number", "1")}
+              ${input("Equipment risk (%)", "schedule.equipmentRiskPercent", "number", "1")}
+            </div>
+            <div class="grid two" style="margin-top:12px;">
+              ${input("Public holiday days", "schedule.publicHolidayDays", "number", "0.5")}
+              ${input("Buffer (%)", "schedule.bufferPercent", "number", "1")}
+            </div>
+          </div>
+          <aside class="panel">
+            <h3>${t("Duration output")}</h3>
+            <ul class="assumption-list">
+              <li><span>${t("Daily output")}</span><strong>${fmt(schedule.dailyOutput)} m2/day</strong></li>
+              <li><span>${t("Weather risk add-on")}</span><strong>${percent(liveWeatherRiskPercent())}</strong></li>
+              <li><span>${t("Workability")}</span><strong>${t(workabilityLevel())}</strong></li>
+              <li><span>${t("Real-world risk add-on")}</span><strong>${percent(realWorldRiskPercent())}</strong></li>
+              <li><span>${t("Base duration")}</span><strong>${fmt(schedule.baseDays, 1)} ${state.language === "zh" ? "天" : "days"}</strong></li>
+              <li><span>${t("Risk score")}</span><strong>${percent(schedule.riskPercent)}</strong></li>
+              <li><span>${t("Adjusted duration")}</span><strong>${fmt(schedule.adjustedDays, 1)} ${state.language === "zh" ? "天" : "days"}</strong></li>
+              <li><span>${t("Buffer days")}</span><strong>${fmt(schedule.bufferDays, 1)} ${state.language === "zh" ? "天" : "days"}</strong></li>
+              <li><span>${t("Final duration")}</span><strong>${fmt(schedule.finalDays, 1)} ${state.language === "zh" ? "天" : "days"}</strong></li>
+              <li><span>${t("Recommended workers")}</span><strong>${schedule.recommendedWorkers}</strong></li>
+              <li><span>${t("Delay risk level")}</span><strong>${t(schedule.level)}</strong></li>
+            </ul>
+            <div style="height:14px;"></div>
+            ${renderWeatherMini()}
+          </aside>
+        </div>
+      `;
+    }
+
+    function renderWeatherMini() {
+      const current = state.weather.current;
+      if (!current) {
+        return `
+          <div class="empty" style="min-height:120px;">
+            <div>
+              <strong>${t("Live weather")}</strong>
+              <p class="hint">${state.language === "zh" ? "点击刷新天气后，工期会自动纳入实时预报。" : "Refresh weather to include live forecast in the duration calculation."}</p>
+            </div>
+          </div>
+        `;
+      }
+      return `
+        <div class="card" style="box-shadow:none;">
+          <div class="section-title">
+            <h3>${t("Live weather")}</h3>
+            <span class="tag ${workabilityLevel() === "Good" ? "ok" : workabilityLevel() === "Caution" ? "warn" : "danger"}">${t(workabilityLevel())}</span>
+          </div>
+          <ul class="assumption-list">
+            <li><span>${state.weather.resolvedName || state.weather.locationQuery}</span><strong>${t(weatherCodeText(current.weather_code))}</strong></li>
+            <li><span>${t("Temperature")}</span><strong>${fmt(current.temperature_2m, 1)} C</strong></li>
+            <li><span>${t("Humidity")}</span><strong>${fmt(current.relative_humidity_2m, 0)}%</strong></li>
+            <li><span>${t("Rain now")}</span><strong>${fmt(current.precipitation, 1)} mm</strong></li>
+            <li><span>${t("Wind")}</span><strong>${fmt(current.wind_speed_10m, 1)} km/h</strong></li>
+          </ul>
+        </div>
+      `;
+    }
+
+    function renderWeather() {
+      const rows = state.weather.daily.length ? state.weather.daily.map(day => `
+        <tr>
+          <td>${h(day.time)}</td>
+          <td>${h(t(weatherCodeText(day.weather_code)))}</td>
+          <td>${fmt(day.temperature_2m_min, 0)}-${fmt(day.temperature_2m_max, 0)} C</td>
+          <td>${fmt(day.precipitation_sum, 1)} mm</td>
+          <td>${fmt(day.precipitation_probability_max, 0)}%</td>
+          <td>${fmt(day.wind_speed_10m_max, 1)} km/h</td>
+        </tr>
+      `).join("") : `<tr><td colspan="6">${state.language === "zh" ? "还没有天气预报。请输入地区并刷新。" : "No forecast yet. Enter a location and refresh."}</td></tr>`;
+
+      return `
+        ${renderHead(t("Weather"), state.language === "zh" ? "联网获取项目地区实时天气和未来 7 天预报，并自动修正户外/混合施工的工期风险。" : "Fetch live weather and a 7-day forecast, then adjust schedule risk for outdoor or mixed work.", `
+          <button class="btn primary" type="button" data-action="refresh-weather">${t("Refresh weather")}</button>
+        `)}
+        <div class="layout">
+          <div class="grid">
+            <div class="panel">
+              <h3>${state.language === "zh" ? "天气地区设置" : "Weather location"}</h3>
+              <div class="grid three">
+                ${input(state.language === "zh" ? "项目地区 / 城市" : "Project location / city", "weather.locationQuery")}
+                ${selectInput(state.language === "zh" ? "天气影响范围" : "Work exposure", "site.workExposure", ["Indoor only", "Mixed indoor/outdoor", "Outdoor work"])}
+                <label>${state.language === "zh" ? "启用实时天气" : "Use live weather"}
+                  <span class="check-row"><input type="checkbox" data-bind="weather.enabled" ${state.weather.enabled ? "checked" : ""}> ${state.language === "zh" ? "纳入工期计算" : "Include in schedule calculation"}</span>
+                </label>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="section-title">
+                <h3>${t("Weather forecast")}</h3>
+                <span class="tag ${state.weather.status === "Live" ? "ok" : state.weather.status === "Error" ? "danger" : "warn"}">${h(t(state.weather.status))}</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>${t("Date")}</th><th>${t("Condition")}</th><th>${t("Temp")}</th><th>${t("Rain")}</th><th>${t("Rain chance")}</th><th>${t("Wind")}</th></tr></thead>
+                  <tbody>${rows}</tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <aside class="panel">
+            ${renderWeatherMini()}
+            <div style="height:14px;"></div>
+            <ul class="assumption-list">
+              <li><span>${t("Weather risk add-on")}</span><strong>${percent(liveWeatherRiskPercent())}</strong></li>
+              <li><span>${t("Workability")}</span><strong>${t(workabilityLevel())}</strong></li>
+              <li><span>${t("Last updated")}</span><strong>${state.weather.lastUpdated ? new Date(state.weather.lastUpdated).toLocaleString() : "-"}</strong></li>
+            </ul>
+            <div style="height:14px;"></div>
+            <p class="hint">${h(state.weather.aiNote)}</p>
+            ${state.weather.error ? `<p class="hint" style="color:var(--danger);">${h(state.weather.error)}</p>` : ""}
+          </aside>
+        </div>
+      `;
+    }
+
+    function renderEvaluation() {
+      const totals = calculateTotals();
+      const schedule = calculateSchedule(totals);
+      const evaluation = calculateEvaluation(totals, schedule);
+      return `
+        ${renderHead("Research validation", "Compare AI estimation, manual estimation, actual project results, and this model output.", "")}
+        <div class="layout">
+          <div class="grid">
+            <div class="panel">
+              <h3>${t("Validation dataset inputs")}</h3>
+              <div class="grid three">
+                ${input("AI material cost", "evaluation.aiMaterialCost", "number", "0.01")}
+                ${input("Manual material cost", "evaluation.manualMaterialCost", "number", "0.01")}
+                ${input("Actual material cost", "evaluation.actualMaterialCost", "number", "0.01")}
+                ${input("AI duration (days)", "evaluation.aiDuration", "number", "0.1")}
+                ${input("Manual duration (days)", "evaluation.manualDuration", "number", "0.1")}
+                ${input("Actual duration (days)", "evaluation.actualDuration", "number", "0.1")}
+                ${input("AI calculation time (min)", "evaluation.aiCalculationMinutes", "number", "0.1")}
+                ${input("Manual calculation time (min)", "evaluation.manualCalculationMinutes", "number", "0.1")}
+              </div>
+            </div>
+            <div class="panel">
+              <div class="section-title">
+                <h3>${t("Small real-user test plan")}</h3>
+                <span class="tag ok">${t("Qualitative + task metrics")}</span>
+              </div>
+              <div class="grid two">
+                ${input("Target users", "userTest.targetUsers", "number", "1")}
+                ${input("User profile", "userTest.profile")}
+              </div>
+              <div class="grid" style="margin-top:12px;">
+                ${textInput("Task", "userTest.task", 3)}
+                ${textInput("Measures", "userTest.measures", 3)}
+              </div>
+            </div>
+          </div>
+          <aside class="panel">
+            <h3>${t("Evaluation metrics")}</h3>
+            <ul class="assumption-list">
+              <li><span>${t("This model material error")}</span><strong>${percent(evaluation.modelMaterialError)}</strong></li>
+              <li><span>${t("This model duration error")}</span><strong>${percent(evaluation.modelDurationError)}</strong></li>
+              <li><span>${t("AI material error")}</span><strong>${percent(evaluation.aiMaterialError)}</strong></li>
+              <li><span>${t("Manual material error")}</span><strong>${percent(evaluation.manualMaterialError)}</strong></li>
+              <li><span>${t("AI duration error")}</span><strong>${percent(evaluation.aiDurationError)}</strong></li>
+              <li><span>${t("Manual duration error")}</span><strong>${percent(evaluation.manualDurationError)}</strong></li>
+              <li><span>${t("Calculation time saving")}</span><strong>${percent(evaluation.timeSaving)}</strong></li>
+            </ul>
+          </aside>
+        </div>
+      `;
+    }
+
+    function renderSimulation() {
+      const result = state.simulation.lastRun;
+      const resultBlock = result ? `
+        <div class="grid three">
+          ${metric(state.language === "zh" ? "AI 材料误差" : "AI material error", percent(result.aiMaterialErrorMean), result.aiMaterialErrorMean <= result.manualMaterialErrorMean ? "accent" : "")}
+          ${metric(state.language === "zh" ? "人工材料误差" : "Manual material error", percent(result.manualMaterialErrorMean))}
+          ${metric(state.language === "zh" ? "AI 节省时间" : "AI time saving", percent(result.timeSavingMean), "accent")}
+          ${metric(state.language === "zh" ? "AI 工期误差" : "AI duration error", percent(result.aiDurationErrorMean), result.aiDurationErrorMean <= result.manualDurationErrorMean ? "accent" : "")}
+          ${metric(state.language === "zh" ? "人工工期误差" : "Manual duration error", percent(result.manualDurationErrorMean))}
+          ${metric(state.language === "zh" ? "AI 胜出比例" : "AI wins", state.language === "zh" ? `${result.aiWinRateMaterial}% 材料 / ${result.aiWinRateDuration}% 工期` : `${result.aiWinRateMaterial}% material / ${result.aiWinRateDuration}% duration`)}
+        </div>
+        <div style="height:12px;"></div>
+        <div class="report">${h(simulationNarrative(result))}</div>
+      ` : `
+        <div class="empty">
+          <div>
+            <strong>${state.language === "zh" ? "尚未运行模拟。" : "No simulation run yet."}</strong>
+            <p class="hint">${state.language === "zh" ? "运行合成样本比较，用来测试 AI 辅助估算是否可能提升准确率并减少准备时间。" : "Run a synthetic comparison to test whether AI-assisted estimation could improve accuracy and preparation time under your thesis assumptions."}</p>
+          </div>
+        </div>
+      `;
+
+      return `
+        ${renderHead(state.language === "zh" ? "Python 模拟实验" : "Python-ready simulation", state.language === "zh" ? "在写 Python 大量模拟前，先定义误差、耗时和样本假设，对比 AI 辅助与传统方法。" : "Prototype the research experiment before writing a Python simulation: define assumed error/time distributions, then compare AI-assisted and conventional methods.", `
+          <button class="btn primary" type="button" data-action="run-simulation">${state.language === "zh" ? "运行模拟" : "Run simulation"}</button>
+          <button class="btn" type="button" data-action="export-simulation" ${result ? "" : "disabled"}>${state.language === "zh" ? "导出 JSON" : "Export JSON"}</button>
+        `)}
+        <div class="layout">
+          <div class="grid">
+            <div class="panel">
+              <h3>${state.language === "zh" ? "模拟假设" : "Simulation assumptions"}</h3>
+              <div class="grid three">
+                ${input(state.language === "zh" ? "样本项目数量" : "Sample projects", "simulation.sampleProjects", "number", "1")}
+                ${input(state.language === "zh" ? "AI 材料误差均值 (%)" : "AI material error mean (%)", "simulation.aiMaterialErrorMean", "number", "0.1")}
+                ${input(state.language === "zh" ? "人工材料误差均值 (%)" : "Manual material error mean (%)", "simulation.manualMaterialErrorMean", "number", "0.1")}
+                ${input(state.language === "zh" ? "AI 工期误差均值 (%)" : "AI duration error mean (%)", "simulation.aiDurationErrorMean", "number", "0.1")}
+                ${input(state.language === "zh" ? "人工工期误差均值 (%)" : "Manual duration error mean (%)", "simulation.manualDurationErrorMean", "number", "0.1")}
+                ${input(state.language === "zh" ? "AI 计算时间均值 (分钟)" : "AI calculation time mean (min)", "simulation.aiMinutesMean", "number", "0.1")}
+                ${input(state.language === "zh" ? "人工计算时间均值 (分钟)" : "Manual calculation time mean (min)", "simulation.manualMinutesMean", "number", "0.1")}
+              </div>
+            </div>
+            <div class="panel">
+              <h3>${state.language === "zh" ? "模拟输出" : "Simulation output"}</h3>
+              ${resultBlock}
+            </div>
+          </div>
+          <aside class="panel">
+            <h3>${state.language === "zh" ? "它如何支持论文" : "How this supports the thesis"}</h3>
+            <ul class="assumption-list">
+              <li><span>${state.language === "zh" ? "目标 1" : "Objective 1"}</span><strong>${state.language === "zh" ? "误差率比较" : "Error rate comparison"}</strong></li>
+              <li><span>${state.language === "zh" ? "目标 2" : "Objective 2"}</span><strong>${state.language === "zh" ? "准备时间节省" : "Preparation time saving"}</strong></li>
+              <li><span>${state.language === "zh" ? "目标 3" : "Objective 3"}</span><strong>${state.language === "zh" ? "可用性场景证据" : "Usability scenario evidence"}</strong></li>
+              <li><span>${state.language === "zh" ? "下一步" : "Next step"}</span><strong>${state.language === "zh" ? "Python 复现实验" : "Python replication"}</strong></li>
+            </ul>
+            <div style="height:14px;"></div>
+            <p class="hint">${state.language === "zh" ? "先在此页选择假设并导出 JSON，再用 Python 复现实验，生成图表、表格和 methodology 依据。" : "Use this page to choose assumptions, export JSON, then reproduce the simulation in Python for charts, tables, and methodology transparency."}</p>
+          </aside>
+        </div>
+      `;
+    }
+
+    function renderReport() {
+      return `
+        ${renderHead("Project report", "The generated report is designed for thesis screenshots, supervisor review, and export as project evidence.", `
+          <button class="btn" type="button" data-action="copy-report">${t("Copy")}</button>
+          <button class="btn" type="button" data-action="download-report">${t("Download text")}</button>
+          <button class="btn primary" type="button" data-action="print">${t("Print")}</button>
+        `)}
+        <div class="report" id="reportText">${h(generateReport())}</div>
+      `;
+    }
+
+    function input(label, path, type = "text", step = "") {
+      const value = getPath(path);
+      const stepAttr = step ? ` step="${h(step)}"` : "";
+      return `
+        <label>${t(label)}
+          <input type="${type}" data-bind="${path}" value="${h(value)}"${stepAttr}>
+        </label>
+      `;
+    }
+
+    function selectInput(label, path, options) {
+      const value = getPath(path);
+      return `
+        <label>${t(label)}
+          <select data-bind="${path}">
+            ${options.map(option => `<option value="${h(option)}" ${value === option ? "selected" : ""}>${h(t(option))}</option>`).join("")}
+          </select>
+        </label>
+      `;
+    }
+
+    function textInput(label, path, rows = 4) {
+      return `
+        <label>${t(label)}
+          <textarea rows="${rows}" data-bind="${path}">${h(getPath(path))}</textarea>
+        </label>
+      `;
+    }
+
+    function roomInput(item, label, field, type = "text", step = "") {
+      const stepAttr = step ? ` step="${h(step)}"` : "";
+      return `
+        <label>${t(label)}
+          <input type="${type}" data-room="${item.id}" data-room-field="${field}" value="${h(item[field])}"${stepAttr}>
+        </label>
+      `;
+    }
+
+    function roomSelect(item, label, field, options) {
+      return `
+        <label>${t(label)}
+          <select data-room="${item.id}" data-room-field="${field}">
+            ${options.map(([value, text]) => `<option value="${h(value)}" ${item[field] === value ? "selected" : ""}>${h(t(text))}</option>`).join("")}
+          </select>
+        </label>
+      `;
+    }
+
+    function updateBoundInput(target) {
+      if (target.dataset.bind) {
+        const current = getPath(target.dataset.bind);
+        const value = target.type === "checkbox" ? target.checked : target.type === "number" ? toNumber(target.value) : target.value;
+        setPath(target.dataset.bind, value);
+      }
+
+      if (target.dataset.room) {
+        const item = state.rooms.find(room => room.id === target.dataset.room);
+        if (item) {
+          const field = target.dataset.roomField;
+          item[field] = target.type === "checkbox" ? target.checked : target.type === "number" ? toNumber(target.value) : target.value;
+        }
+      }
+
+      if (target.dataset.tile) {
+        const item = state.tiles.find(tile => tile.id === target.dataset.tile);
+        if (item) {
+          const field = target.dataset.tileField;
+          item[field] = target.type === "number" ? toNumber(target.value) : target.value;
+        }
+      }
+
+      saveState();
+      renderSummary();
+      requestAnimationFrame(drawPlan);
+    }
+
+    function handleAction(target) {
+      const action = target.dataset.action;
+      if (action === "view") {
+        state.activeView = target.dataset.view;
+      }
+      if (action === "reset-demo") {
+        localStorage.removeItem(STORAGE_KEY);
+        state = structuredClone(defaultState);
+        state.language = "zh";
+        currentUploadedFile = null;
+        render();
+        toast(t("Chinese demo reset"));
+        return;
+      }
+      if (action === "add-room") {
+        state.rooms.push(room(state.language === "zh" ? `房间 ${state.rooms.length + 1}` : `Room ${state.rooms.length + 1}`, "Other", "rectangle", 3, 3, 0, 0, 0, state.tiles[0]?.id || "", true));
+        toast(t("Room added"));
+      }
+      if (action === "duplicate-room") {
+        const source = state.rooms.find(item => item.id === target.dataset.room);
+        if (source) state.rooms.push({ ...structuredClone(source), id: uid("room"), name: `${source.name} ${state.language === "zh" ? "副本" : "copy"}` });
+      }
+      if (action === "delete-room") {
+        state.rooms = state.rooms.filter(item => item.id !== target.dataset.room);
+      }
+      if (action === "add-tile") {
+        const id = uid("tile");
+        state.tiles.push(tile(id, state.language === "zh" ? `瓷砖方案 ${state.tiles.length + 1}` : `Tile scheme ${state.tiles.length + 1}`, 0.6, 0.6, 4, 50));
+      }
+      if (action === "delete-tile") {
+        if (state.tiles.length > 1) {
+          const id = target.dataset.tile;
+          state.tiles = state.tiles.filter(item => item.id !== id);
+          state.rooms.forEach(item => {
+            if (item.tileId === id) item.tileId = state.tiles[0].id;
+          });
+        }
+      }
+      if (action === "mock-ai") {
+        runMockAi();
+      }
+      if (action === "analyze-gemini") {
+        analyzeWithGemini();
+        return;
+      }
+      if (action === "import-ai") {
+        importAiDraft();
+      }
+      if (action === "refresh-weather") {
+        refreshWeather();
+        return;
+      }
+      if (action === "run-simulation") {
+        runSimulation();
+      }
+      if (action === "export-simulation") {
+        exportSimulation();
+        return;
+      }
+      if (action === "copy-report") {
+        copyReport();
+        return;
+      }
+      if (action === "download-report") {
+        downloadReport();
+        return;
+      }
+      if (action === "print") {
+        window.print();
+        return;
+      }
+      render();
+    }
+
+    function runMockAi() {
+      state.plan.aiStatus = "Gemini extraction simulated";
+      const qualityPenalty = state.site.scaleReliability === "Low" || state.site.drawingQuality.includes("Poor") ? 10 : state.site.drawingQuality.includes("Mixed") ? 4 : 0;
+      state.plan.aiDraft = [
+        { name: state.language === "zh" ? "识别客厅" : "Detected Living", roomType: "Living", shape: "rectangle", area: 20.8, confidence: Math.max(50, 88 - qualityPenalty) },
+        { name: state.language === "zh" ? "识别卧室" : "Detected Bedroom", roomType: "Bedroom", shape: "rectangle", area: 12.9, confidence: Math.max(50, 84 - qualityPenalty) },
+        { name: state.language === "zh" ? "识别厨房" : "Detected Kitchen", roomType: "Kitchen", shape: "l-shape", area: 11.6, confidence: Math.max(50, 76 - qualityPenalty) }
+      ];
+      state.ai.outputSummary = state.language === "zh"
+        ? "模拟 AI 从图纸中识别出三个房间。厨房置信度低于复核阈值，承包商需要在最终订料前确认尺寸。"
+        : "Simulated AI extracted three rooms from the drawing. Kitchen confidence is below the review threshold, so the contractor should validate dimensions before final material ordering.";
+      toast(t("Gemini-style draft created"));
+    }
+
+    async function analyzeWithGemini() {
+      if (!currentUploadedFile) {
+        state.ai.analysisStatus = "Upload a drawing file first";
+        state.activeView = "project";
+        render();
+        toast(t(state.ai.analysisStatus));
+        return;
+      }
+
+      const endpoint = (state.ai.backendUrl || "").trim() || (location.protocol === "file:" ? "" : "/api/analyze");
+      if (!endpoint) {
+        state.ai.analysisStatus = "Missing online backend. file:// cannot securely call Gemini. Deploy using DEPLOY.md first.";
+        render();
+        toast(t("Deploy backend first"));
+        return;
+      }
+
+      state.plan.aiStatus = "Calling Gemini...";
+      state.ai.analysisStatus = state.plan.aiStatus;
+      render();
+
+      try {
+        const form = new FormData();
+        form.append("file", currentUploadedFile, currentUploadedFile.name);
+        form.append("payload", JSON.stringify({
+          language: state.language,
+          project: state.project,
+          site: state.site,
+          weather: {
+            enabled: state.weather.enabled,
+            current: state.weather.current,
+            daily: state.weather.daily
+          },
+          settings: state.settings,
+          schedule: state.schedule,
+          ai: {
+            modelName: state.ai.modelName,
+            promptStrategy: state.ai.promptStrategy
+          },
+          prompt: {
+            drawing: state.ai.drawingPrompt,
+            estimation: state.ai.estimationPrompt,
+            workflow: state.ai.workflowPrompt
+          }
+        }));
+
+        const response = await fetch(endpoint, { method: "POST", body: form });
+        const text = await response.text();
+        if (!response.ok) throw new Error(text || `HTTP ${response.status}`);
+        const data = JSON.parse(text);
+        const rooms = Array.isArray(data.rooms) ? data.rooms : [];
+        if (!rooms.length) throw new Error(t("Gemini returned no rooms"));
+
+        state.plan.aiDraft = rooms.map((item, index) => ({
+          name: item.name || item.room_name || `AI Room ${index + 1}`,
+          roomType: item.roomType || item.room_type || "Other",
+          shape: normalizeAiShape(item.shape),
+          area: toNumber(item.area ?? item.gross_area_m2 ?? item.net_area_m2, 0),
+          confidence: normalizeConfidence(item.confidence ?? item.confidence_score ?? 0.7),
+          warning: Array.isArray(item.warnings) ? item.warnings.join("; ") : (item.warning || "")
+        }));
+        state.plan.aiStatus = "Gemini analysis complete, waiting for review";
+        state.ai.analysisStatus = state.plan.aiStatus;
+        state.ai.lastRawResponse = data.summary || data.workflow_notes?.join("\n") || text.slice(0, 1800);
+        state.ai.outputSummary = data.summary || state.ai.outputSummary;
+        render();
+        toast(t("Analysis complete"));
+      } catch (error) {
+        state.plan.aiStatus = "Gemini analysis failed";
+        state.ai.analysisStatus = `${state.plan.aiStatus}: ${error.message}`;
+        state.ai.lastRawResponse = error.message;
+        render();
+        toast(t(state.plan.aiStatus));
+      }
+    }
+
+    function normalizeAiShape(shape) {
+      const value = String(shape || "").toLowerCase();
+      if (value.includes("l")) return "l-shape";
+      if (value.includes("manual") || value.includes("irregular") || value.includes("polygon")) return "manual";
+      return "rectangle";
+    }
+
+    function normalizeConfidence(value) {
+      const number = toNumber(value, 0);
+      return number <= 1 ? number * 100 : number;
+    }
+
+    function importAiDraft() {
+      state.plan.aiDraft.forEach(item => {
+        const width = Math.sqrt(item.area);
+        const length = item.area / width;
+        state.rooms.push({
+          id: uid("room"),
+          name: item.name,
+          roomType: item.roomType,
+          shape: item.shape,
+          length: Number(length.toFixed(2)),
+          width: Number(width.toFixed(2)),
+          cutLength: item.shape === "l-shape" ? 1 : 0,
+          cutWidth: item.shape === "l-shape" ? 0.8 : 0,
+          manualArea: item.shape === "manual" ? Number(toNumber(item.area).toFixed(2)) : 0,
+          perimeter: 0,
+          obstacleArea: 0,
+          tileId: state.tiles[0]?.id || "",
+          skirting: true
+        });
+      });
+      state.plan.aiDraft = [];
+      state.activeView = "rooms";
+      toast(t("Draft rooms imported for manual correction"));
+    }
+
+    function handleFile(file) {
+      if (!file) return;
+      currentUploadedFile = file;
+      state.plan.fileName = file.name;
+      state.plan.fileType = file.type || "Unknown";
+      state.plan.previewData = "";
+      state.plan.aiStatus = classifyInputFile(file);
+      state.ai.analysisStatus = "Drawing uploaded. Open AI Pipeline and run Gemini analysis.";
+      if (file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          state.plan.previewData = String(reader.result || "");
+          render();
+        };
+        reader.readAsDataURL(file);
+      } else {
+        render();
+      }
+    }
+
+    function classifyInputFile(file) {
+      const name = (file.name || "").toLowerCase();
+      if (file.type.startsWith("image/")) return "Image ready for Gemini vision";
+      if (file.type === "application/pdf" || name.endsWith(".pdf")) return "PDF ready for Gemini document processing";
+      if (/\.(dwg|dxf|ifc|rvt|skp)$/.test(name)) return "CAD/model file needs backend conversion";
+      if (/\.(xls|xlsx|csv)$/.test(name)) return "Spreadsheet ready for conventional baseline parsing";
+      if (/\.(doc|docx)$/.test(name)) return "Document needs backend text extraction";
+      return "Uploaded file needs backend pre-processing";
+    }
+
+    function generateReport() {
+      const totals = calculateTotals();
+      const schedule = calculateSchedule(totals);
+      const evaluation = calculateEvaluation(totals, schedule);
+      const roomLines = totals.rooms.map(({ room, calc }, index) => {
+        return `${index + 1}. ${room.name} | ${room.roomType} | ${room.shape} | gross ${fmt(calc.gross)} m2 | net ${fmt(calc.floorArea)} m2 | tile area ${fmt(calc.tileArea)} m2 | ${fmt(calc.pieces, 0)} pcs | ${fmt(calc.boxes, 0)} boxes`;
+      }).join("\n");
+
+      if (state.language === "zh") {
+        const zhRoomLines = totals.rooms.map(({ room, calc }, index) => {
+          return `${index + 1}. ${room.name} | ${t(room.roomType)} | ${t(room.shape)} | 毛面积 ${fmt(calc.gross)} m2 | 净面积 ${fmt(calc.floorArea)} m2 | 含踢脚线面积 ${fmt(calc.tileArea)} m2 | ${fmt(calc.pieces, 0)} 片 | ${fmt(calc.boxes, 0)} 箱`;
+        }).join("\n");
+
+        return `AI 辅助瓷砖估算原型报告
+
+论文方向
+比较 AI 辅助方法与传统方法在马来西亚小型瓷砖承包商材料估算和工序规划中的表现。
+
+项目资料
+项目名称：${state.project.name || "-"}
+客户：${state.project.client || "-"}
+地点：${state.project.location || "-"}
+估算日期：${state.project.date || "-"}
+图纸文件：${state.plan.fileName || "未上传"}
+输入处理状态：${statusText(state.plan.aiStatus)}
+备注：${state.project.notes || "-"}
+
+AI 辅助流程
+AI 供应商：${state.ai.provider}
+AI 模式：${t(state.ai.mode)}
+模型目标：${state.ai.modelName}
+提示词策略：${t(state.ai.promptStrategy)}
+API key 放置：${t(state.ai.apiPlacement)}
+置信度阈值：${percent(state.ai.confidenceThreshold)}
+是否需要人工复核：${state.ai.humanReview ? "是" : "否"}
+后端 URL：${state.ai.backendUrl || "/api/analyze"}
+文件预处理说明：${state.plan.preprocessingNote}
+AI 输出说明：${state.ai.outputSummary || "-"}
+
+实时天气与工期修正
+是否启用天气：${state.weather.enabled ? "是" : "否"}
+天气地点：${state.weather.resolvedName || state.weather.locationQuery || "-"}
+天气状态：${t(state.weather.status)}
+更新时间：${state.weather.lastUpdated || "-"}
+天气风险附加：${percent(liveWeatherRiskPercent())}
+可施工性：${t(workabilityLevel())}
+AI 天气建议：${state.weather.aiNote || "-"}
+
+真实工地条件
+图纸质量：${t(state.site.drawingQuality)}
+输入文件现实情况：${t(state.site.fileTypeReality)}
+比例可靠性：${t(state.site.scaleReliability)}
+地面平整度：${t(state.site.substrateLevelness)}
+铺贴方式：${t(state.site.tilePattern)}
+现场限制：${t(state.site.accessConstraint)}
+天气影响范围：${t(state.site.workExposure)}
+湿区条件：${t(state.site.wetArea)}
+建议损耗：${percent(recommendedWastePercent())}
+真实工地风险附加：${percent(realWorldRiskPercent())}
+
+房间测量与人工复核
+房间数量：${totals.roomCount}
+净面积：${fmt(totals.floorArea)} m2
+含踢脚线瓷砖面积：${fmt(totals.tileArea)} m2
+含损耗面积：${fmt(totals.areaWithWaste)} m2
+踢脚线长度：${fmt(totals.skirtingLength)} m
+
+${zhRoomLines || "尚未输入房间。"}
+
+材料估算
+瓷砖损耗：${percent(state.settings.wastePercent)}
+瓷砖片数：${fmt(totals.tilePieces, 0)}
+瓷砖箱数：${fmt(totals.tileBoxes, 0)}
+瓷砖成本：${money(totals.tileCost)}
+瓷砖胶覆盖假设：${fmt(state.settings.adhesiveCoveragePerBag)} m2 / 50kg
+厚度修正系数：${fmt(state.settings.thicknessFactor, 2)}x
+瓷砖胶：${fmt(totals.adhesiveBags, 0)} 包
+瓷砖胶成本：${money(totals.adhesiveCost)}
+填缝剂：${fmt(totals.groutKg, 1)} kg
+水泥：${fmt(totals.cementBags, 0)} 包
+沙：${fmt(totals.sandM3, 3)} m3
+材料总成本：${money(totals.materialCost)}
+
+人工与工期预测
+工人数：${state.schedule.workers}
+每名工人每日效率：${fmt(state.schedule.productivityPerWorker, 1)} m2/day
+团队每日产量：${fmt(schedule.dailyOutput)} m2/day
+复杂度系数：${fmt(state.schedule.complexityFactor, 2)}x
+基础工期：${fmt(schedule.baseDays, 1)} 天
+总风险分数：${percent(schedule.riskPercent)}
+修正后工期：${fmt(schedule.adjustedDays, 1)} 天
+缓冲天数：${fmt(schedule.bufferDays, 1)} 天
+公共假期：${fmt(state.schedule.publicHolidayDays, 1)} 天
+最终预计工期：${fmt(schedule.finalDays, 1)} 天
+目标工期建议工人数：${schedule.recommendedWorkers}
+延误风险等级：${t(schedule.level)}
+
+研究评估
+模型材料误差：${percent(evaluation.modelMaterialError)}
+模型工期误差：${percent(evaluation.modelDurationError)}
+AI 材料误差：${percent(evaluation.aiMaterialError)}
+人工材料误差：${percent(evaluation.manualMaterialError)}
+AI 工期误差：${percent(evaluation.aiDurationError)}
+人工工期误差：${percent(evaluation.manualDurationError)}
+计算时间节省：${percent(evaluation.timeSaving)}
+
+真实用户测试计划
+目标用户数：${state.userTest.targetUsers}
+用户类型：${state.userTest.profile}
+测试任务：${state.userTest.task}
+衡量指标：${state.userTest.measures}
+
+重要限制
+如果没有部署 Gemini 后端，AI 识别不会真正工作。前端不能直接保存 Gemini API key，否则 key 会泄露。`;
+      }
+
+      return `AI-Assisted Tile Estimation Prototype Report
+
+Thesis focus
+Comparing generative AI-assisted and conventional methods for material estimation and workflow planning among Malaysian tiling contractors.
+
+Project
+Project name: ${state.project.name || "-"}
+Client: ${state.project.client || "-"}
+Location: ${state.project.location || "-"}
+Estimate date: ${state.project.date || "-"}
+Floor plan file: ${state.plan.fileName || "Not uploaded"}
+Input processing status: ${state.plan.aiStatus}
+Notes: ${state.project.notes || "-"}
+
+AI-Assisted Workflow Design
+AI provider: ${state.ai.provider}
+AI mode: ${state.ai.mode}
+Future model: ${state.ai.modelName}
+Prompt strategy: ${state.ai.promptStrategy}
+API key placement: ${state.ai.apiPlacement}
+Confidence threshold: ${percent(state.ai.confidenceThreshold)}
+Human review required: ${state.ai.humanReview ? "Yes" : "No"}
+File pre-processing note: ${state.plan.preprocessingNote}
+AI output note: ${state.ai.outputSummary || "-"}
+
+Real-World Project Conditions
+Drawing quality: ${state.site.drawingQuality}
+Input file reality: ${state.site.fileTypeReality}
+Scale reliability: ${state.site.scaleReliability}
+Substrate levelness: ${state.site.substrateLevelness}
+Tile pattern: ${state.site.tilePattern}
+Access constraint: ${state.site.accessConstraint}
+Work exposure: ${state.site.workExposure}
+Wet-area condition: ${state.site.wetArea}
+Recommended waste based on real-world conditions: ${percent(recommendedWastePercent())}
+Real-world risk add-on: ${percent(realWorldRiskPercent())}
+Reality notes: ${state.site.notes || "-"}
+
+Live Weather Integration
+Weather enabled: ${state.weather.enabled ? "Yes" : "No"}
+Weather location: ${state.weather.resolvedName || state.weather.locationQuery || "-"}
+Weather status: ${state.weather.status}
+Last updated: ${state.weather.lastUpdated || "-"}
+Weather risk add-on: ${percent(liveWeatherRiskPercent())}
+Workability: ${workabilityLevel()}
+Weather AI note: ${state.weather.aiNote || "-"}
+
+Room Measurement and Manual Correction
+Room count: ${totals.roomCount}
+Net floor area: ${fmt(totals.floorArea)} m2
+Tile area including skirting: ${fmt(totals.tileArea)} m2
+Area after waste allowance: ${fmt(totals.areaWithWaste)} m2
+Skirting length: ${fmt(totals.skirtingLength)} m
+
+${roomLines || "No rooms entered."}
+
+Material Estimation
+Waste allowance: ${percent(state.settings.wastePercent)}
+Tile pieces: ${fmt(totals.tilePieces, 0)}
+Tile boxes: ${fmt(totals.tileBoxes, 0)}
+Tile cost: ${money(totals.tileCost)}
+Adhesive coverage assumption: ${fmt(state.settings.adhesiveCoveragePerBag)} m2 per 50kg bag
+Thickness factor: ${fmt(state.settings.thicknessFactor, 2)}x
+Adhesive bags: ${fmt(totals.adhesiveBags, 0)}
+Adhesive cost: ${money(totals.adhesiveCost)}
+Grout: ${fmt(totals.groutKg, 1)} kg
+Cement: ${fmt(totals.cementBags, 0)} bags
+Sand: ${fmt(totals.sandM3, 3)} m3
+Total material cost: ${money(totals.materialCost)}
+
+Labour and Duration Prediction
+Workers: ${state.schedule.workers}
+Productivity per worker: ${fmt(state.schedule.productivityPerWorker, 1)} m2/day
+Daily output: ${fmt(schedule.dailyOutput)} m2/day
+Complexity factor: ${fmt(state.schedule.complexityFactor, 2)}x
+Base duration: ${fmt(schedule.baseDays, 1)} days
+Risk score: ${percent(schedule.riskPercent)}
+Adjusted duration: ${fmt(schedule.adjustedDays, 1)} days
+Buffer days: ${fmt(schedule.bufferDays, 1)} days
+Public holiday days: ${fmt(state.schedule.publicHolidayDays, 1)}
+Final estimated duration: ${fmt(schedule.finalDays, 1)} days
+Recommended workers for target duration: ${schedule.recommendedWorkers}
+Delay risk level: ${schedule.level}
+
+Research Evaluation
+Model material error against actual: ${percent(evaluation.modelMaterialError)}
+Model duration error against actual: ${percent(evaluation.modelDurationError)}
+AI material error against actual: ${percent(evaluation.aiMaterialError)}
+Manual material error against actual: ${percent(evaluation.manualMaterialError)}
+AI duration error against actual: ${percent(evaluation.aiDurationError)}
+Manual duration error against actual: ${percent(evaluation.manualDurationError)}
+Calculation time saving: ${percent(evaluation.timeSaving)}
+
+Small Real-User Test Plan
+Target users: ${state.userTest.targetUsers}
+User profile: ${state.userTest.profile}
+Task: ${state.userTest.task}
+Measures: ${state.userTest.measures}
+
+Research Objectives
+Objective 1: Compare material estimation accuracy between conventional and generative AI-assisted methods.
+Objective 2: Compare preparation time of tiling workflow plans between conventional and generative AI-assisted methods.
+Objective 3: Evaluate practical usability of the generative AI-assisted method for Malaysian tiling contractors.
+
+Simulation Summary
+${state.simulation.lastRun ? simulationNarrative(state.simulation.lastRun) : "No synthetic simulation has been run yet."}
+
+Prototype Limitation
+The floor-plan AI detection in this static version is simulated. A production version needs a backend for OCR, room boundary segmentation, scale calibration, object or obstacle detection, LLM prompt orchestration, structured JSON validation, and secure model API keys.`;
+    }
+
+    async function copyReport() {
+      const text = generateReport();
+      try {
+        await navigator.clipboard.writeText(text);
+        toast(t("Report copied"));
+      } catch {
+        toast(t("Clipboard blocked. Use Download text instead."));
+      }
+    }
+
+    function downloadReport() {
+      const blob = new Blob([generateReport()], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "tile-installation-report.txt";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportSimulation() {
+      const payload = {
+        thesisTitle: "Comparing Generative AI-Assisted and Conventional Methods for Material Estimation and Workflow Planning among Malaysian Tiling Contractors",
+        assumptions: state.simulation,
+        latestResult: state.simulation.lastRun
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "ai-vs-conventional-simulation.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function drawPlan() {
+      const canvas = document.getElementById("planCanvas");
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const width = Math.max(320, Math.floor(rect.width));
+      const height = Math.max(260, Math.floor(rect.height));
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "#fbfcf8";
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.strokeStyle = "#d8ded7";
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= width; x += 24) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= height; y += 24) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+
+      const colors = ["#bfe3dc", "#f4d6ab", "#cad8b8", "#d8c3b1", "#c9d6e4", "#e6c9c9"];
+      let x = 18;
+      let y = 18;
+      let rowHeight = 0;
+      const scale = Math.max(24, Math.min(48, width / 14));
+
+      state.rooms.forEach((item, index) => {
+        const calc = roomCalc(item);
+        const roomWidth = Math.max(54, Math.min(width - 36, toNumber(item.width, 2.8) * scale));
+        const roomHeight = Math.max(46, Math.min(160, toNumber(item.length, 3) * scale));
+        if (x + roomWidth + 18 > width) {
+          x = 18;
+          y += rowHeight + 18;
+          rowHeight = 0;
+        }
+        if (y + roomHeight + 18 > height) return;
+
+        ctx.fillStyle = colors[index % colors.length];
+        ctx.strokeStyle = "#172026";
+        ctx.lineWidth = 1.5;
+        ctx.fillRect(x, y, roomWidth, roomHeight);
+        ctx.strokeRect(x, y, roomWidth, roomHeight);
+
+        if (item.shape === "l-shape") {
+          const cutW = Math.min(roomWidth * 0.38, Math.max(18, toNumber(item.cutWidth, 0.8) * scale));
+          const cutH = Math.min(roomHeight * 0.38, Math.max(18, toNumber(item.cutLength, 1) * scale));
+          ctx.fillStyle = "#fbfcf8";
+          ctx.fillRect(x + roomWidth - cutW, y + roomHeight - cutH, cutW, cutH);
+          ctx.strokeRect(x + roomWidth - cutW, y + roomHeight - cutH, cutW, cutH);
+        }
+
+        if (toNumber(item.obstacleArea) > 0) {
+          const obstacle = Math.max(10, Math.min(28, Math.sqrt(toNumber(item.obstacleArea)) * scale * 0.5));
+          ctx.fillStyle = "#8a3d06";
+          ctx.fillRect(x + roomWidth - obstacle - 8, y + 8, obstacle, obstacle);
+        }
+
+        ctx.fillStyle = "#172026";
+        ctx.font = "700 12px Inter, Arial";
+        ctx.fillText(item.name || `Room ${index + 1}`, x + 8, y + 19);
+        ctx.font = "12px Inter, Arial";
+        ctx.fillText(`${fmt(calc.floorArea, 1)} m2`, x + 8, y + 37);
+
+        x += roomWidth + 18;
+        rowHeight = Math.max(rowHeight, roomHeight);
+      });
+
+      if (!state.rooms.length) {
+        ctx.fillStyle = "#62707a";
+        ctx.font = "700 14px Inter, Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(t("Add rooms to generate a diagram preview."), width / 2, height / 2);
+        ctx.textAlign = "start";
+      }
+    }
+
+    function toast(message) {
+      document.querySelector(".toast")?.remove();
+      const node = document.createElement("div");
+      node.className = "toast";
+      node.textContent = message;
+      document.body.appendChild(node);
+      setTimeout(() => node.remove(), 1900);
+    }
+
+    document.addEventListener("click", event => {
+      const target = event.target.closest("[data-action]");
+      if (target) handleAction(target);
+    });
+
+    document.addEventListener("input", event => {
+      const target = event.target;
+      if (target.matches("[data-bind], [data-room], [data-tile]")) updateBoundInput(target);
+    });
+
+    document.addEventListener("change", event => {
+      const target = event.target;
+      if (target.id === "languageSelect") {
+        state.language = target.value;
+        localizeDefaultData(state.language);
+        render();
+        return;
+      }
+      if (target.id === "planFile") {
+        handleFile(target.files[0]);
+        return;
+      }
+      if (target.matches("[data-bind], [data-room], [data-tile]")) {
+        updateBoundInput(target);
+        render();
+      }
+    });
+
+    window.addEventListener("resize", () => requestAnimationFrame(drawPlan));
+
+    render();
+    if (state.weather.enabled && !state.weather.current && !weatherAutoStarted) {
+      weatherAutoStarted = true;
+      setTimeout(refreshWeather, 400);
+    }
+  </script>
+</body>
+</html>
