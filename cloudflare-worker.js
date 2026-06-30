@@ -111,10 +111,11 @@ Return this JSON structure:
     {
       "name": "Living Room",
       "room_type": "Living",
-      "shape": "rectangle | l-shape | manual",
+      "shape": "rectangle | l-shape | irregular",
       "area": 20.5,
       "gross_area_m2": 20.5,
       "deduction_area_m2": 0,
+      "net_area_m2": 20.5,
       "confidence": 0.0,
       "warnings": ["scale unclear"]
     }
@@ -126,7 +127,11 @@ Return this JSON structure:
 }
 
 Rules:
-- If dimensions are unclear, estimate conservatively and lower confidence.
+- Classify each room shape as "rectangle", "l-shape", or "irregular".
+- For irregular / non-rectangular / polygon rooms, do NOT force a rectangle. Set shape to "irregular" and measure the actual floor polygon as accurately as the drawing allows, reporting it in "net_area_m2" (and the same value in "area").
+- Always report "net_area_m2" = floor tiling area AFTER subtracting columns, voids, fixed cabinets, and stairs ("deduction_area_m2"). "gross_area_m2" is before deductions. Set "area" equal to "net_area_m2".
+- For irregular rooms, lower the confidence and add a warning that the area was measured from an irregular shape and should be verified on site.
+- If dimensions or scale are unclear, estimate conservatively and lower confidence.
 - Never invent high confidence for unreadable dimensions.
 - Flag missing scale, unclear room boundaries, columns, voids, stairs, built-in cabinets, wet areas, and outdoor/weather exposure.
 - Keep rooms editable by humans.
@@ -137,16 +142,23 @@ function normalizeResponse(data, rawText) {
   const rooms = Array.isArray(data.rooms) ? data.rooms : [];
   return {
     summary: data.summary || "Gemini analysis completed.",
-    rooms: rooms.map((room, index) => ({
-      name: room.name || room.room_name || `Room ${index + 1}`,
-      room_type: room.room_type || room.roomType || "Other",
-      shape: room.shape || "manual",
-      area: Number(room.area ?? room.gross_area_m2 ?? room.net_area_m2 ?? 0),
-      gross_area_m2: Number(room.gross_area_m2 ?? room.area ?? 0),
-      deduction_area_m2: Number(room.deduction_area_m2 ?? 0),
-      confidence: Number(room.confidence ?? room.confidence_score ?? 0.5),
-      warnings: Array.isArray(room.warnings) ? room.warnings : []
-    })),
+    rooms: rooms.map((room, index) => {
+      const gross = Number(room.gross_area_m2 ?? room.area ?? room.net_area_m2 ?? 0);
+      const deduction = Number(room.deduction_area_m2 ?? 0);
+      // Prefer an explicit net area; otherwise derive it from gross minus deductions.
+      const net = Number(room.net_area_m2 ?? Math.max(0, gross - deduction) ?? room.area ?? 0);
+      return {
+        name: room.name || room.room_name || `Room ${index + 1}`,
+        room_type: room.room_type || room.roomType || "Other",
+        shape: room.shape || "manual",
+        area: net,
+        gross_area_m2: gross,
+        deduction_area_m2: deduction,
+        net_area_m2: net,
+        confidence: Number(room.confidence ?? room.confidence_score ?? 0.5),
+        warnings: Array.isArray(room.warnings) ? room.warnings : []
+      };
+    }),
     drawing_warnings: data.drawing_warnings || [],
     workflow_notes: data.workflow_notes || [],
     material_notes: data.material_notes || [],
