@@ -48,7 +48,7 @@
       en: {},
       zh: {
         "AI-Driven Tile Installation Planning System": "AI 驱动瓷砖铺设规划系统",
-        "Research prototype": "研究原型",
+        "Engineering planning system": "工程规划系统",
         "Localized estimator for Malaysian tiling contractors, with Gemini floor-plan detection, manual correction, material take-off, duration prediction, and thesis evaluation.": "面向马来西亚瓷砖承包商的本土化估算系统，包含 Gemini 图纸识别、人工修正、材料工程量、工期预测与论文评估。",
         "Language": "语言",
         "Dashboard": "总览",
@@ -76,7 +76,7 @@
         "Risk Level": "风险等级",
         "Upload floor plan": "上传图纸",
         "Supported input": "支持输入",
-        "JPG, PNG, PDF, or CAD exported image. JPG/PNG will show preview; PDF shows file name for prototype testing.": "JPG、PNG、PDF 或 CAD 导出图片。JPG/PNG 会显示预览；PDF 原型阶段显示文件名。",
+        "JPG, PNG, PDF, or CAD exported image. JPG/PNG will show preview; PDF currently shows file name until PDF page rendering is added.": "JPG、PNG、PDF 或 CAD 导出图片。JPG/PNG 会显示预览；PDF 在加入页面渲染前会先显示文件名。",
         "Choose file": "选择文件",
         "Preview": "预览",
         "No floor plan uploaded yet.": "尚未上传图纸。",
@@ -106,6 +106,8 @@
         "Tile Scheme": "瓷砖方案",
         "Length (m)": "长度 (m)",
         "Width (m)": "宽度 (m)",
+        "Dimension Source": "尺寸来源",
+        "AI did not return reliable room length/width. Please enter site-measured dimensions for skirting and layout waste.": "AI 没有返回可靠的房间长宽。请手动输入现场复核尺寸，用于踢脚线和排版损耗计算。",
         "Manual gross area (m²)": "手动毛面积 (m²)",
         "Manual deducted area (m²)": "手动扣除面积 (m²)",
         "Obstacle Type": "障碍物类型",
@@ -232,8 +234,11 @@
         "AI result imported. You can manually correct rooms now.": "AI 结果已导入，现在可以手动修正房间。",
         "Please upload a JPG/PNG/PDF or CAD exported image first.": "请先上传 JPG/PNG/PDF 或 CAD 导出图片。",
         "Floor plan image crop unavailable for PDF/non-image upload.": "PDF/非图片上传暂时不能裁剪房间图。",
-        "PDF / non-image preview is file-name only in this prototype.": "PDF / 非图片文件在此原型中只显示文件名。",
+        "PDF / non-image preview currently shows the file name. Convert CAD to PDF/PNG before analysis.": "PDF / 非图片文件目前会显示文件名。CAD 文件请先导出为 PDF/PNG 再分析。",
         "Interview adhesive note": "访谈参数：50kg 瓷砖胶约可铺 80-83 平方尺，即约 7.43-7.71 m²。本系统默认采用保守值 7.43 m²/包。",
+        "Adhesive cost per 50kg bag (RM)": "每包 50kg 瓷砖胶成本 (RM)",
+        "Cement cost per 50kg bag (RM)": "每包 50kg 洋灰成本 (RM)",
+        "Sand cost per m³ (RM)": "每 m³ 沙成本 (RM)",
         "Interview duration note": "访谈默认值：2 人团队每天完成 430-480 平方尺，平均约 42.27 m²/day；每名工人默认 21.13 m²/day。",
         "crop available": "已有裁剪图",
         "no crop": "无裁剪图",
@@ -278,6 +283,11 @@
     function num(value, fallback = 0) {
       const parsed = Number(value);
       return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function inputValue(target) {
+      if (target.type === "number") return target.value === "" ? "" : num(target.value);
+      return target.value;
     }
 
     function ceil(value) {
@@ -363,6 +373,9 @@
         cementBagKg: 50,
         cementKgPerM2: 6.5,
         sandM3PerM2: 0.045,
+        adhesiveCostPerBag: 28,
+        cementCostPerBag: 18,
+        sandCostPerM3: 95,
         screedRatio: "1:3",
         wallRatio: "1:4",
         susuFactor: 1.0,
@@ -417,6 +430,7 @@
     };
 
     let state = loadState();
+    repairLegacyImportedRooms();
     let uploadedImageElement = null;
     let currentUploadedFile = null;
 
@@ -444,6 +458,33 @@
       const copy = structuredClone(state);
       if (copy.uploadedPlan?.previewUrl?.startsWith("blob:")) copy.uploadedPlan.previewUrl = "";
       localStorage.setItem(STORAGE_KEY, JSON.stringify(copy));
+    }
+
+    function repairLegacyImportedRooms() {
+      const warning = "AI did not return reliable room length/width. Please enter site-measured dimensions for skirting and layout waste.";
+      (state.rooms || []).forEach(room => {
+        const area = num(room.manualGrossArea);
+        const length = num(room.length);
+        const width = num(room.width);
+        const side = Math.sqrt(Math.max(0.01, area));
+        const looksLikeSquareFallback = area > 0 &&
+          length > 0 &&
+          width > 0 &&
+          Math.abs(length - width) < 0.000001 &&
+          Math.abs(length - side) < 0.0001 &&
+          num(room.confidence, 100) < 100;
+        if (!looksLikeSquareFallback) return;
+        room.length = "";
+        room.width = "";
+        room.dimensionSource = "missing";
+        if (room.shapeType !== "Rectangle") room.shapeType = "Manual Area";
+        appendWarning(room, warning);
+      });
+    }
+
+    function appendWarning(target, warning) {
+      const existing = String(target.aiWarning || "");
+      if (!existing.includes(warning)) target.aiWarning = existing ? `${existing} ${warning}` : warning;
     }
 
     /* =========================================================
@@ -530,9 +571,9 @@
       );
       const cementBags = Math.ceil(netArea * Math.max(0, num(state.settings.cementKgPerM2)) / Math.max(1, num(state.settings.cementBagKg, 50)));
       const sandM3 = netArea * Math.max(0, num(state.settings.sandM3PerM2));
-      const adhesiveCost = adhesiveBags * 28;
-      const cementCost = cementBags * 18;
-      const sandCost = sandM3 * 95;
+      const adhesiveCost = adhesiveBags * Math.max(0, num(state.settings.adhesiveCostPerBag, 28));
+      const cementCost = cementBags * Math.max(0, num(state.settings.cementCostPerBag, 18));
+      const sandCost = sandM3 * Math.max(0, num(state.settings.sandCostPerM3, 95));
       const materialCost = tileCost + adhesiveCost + cementCost + sandCost;
 
       return {
@@ -573,6 +614,7 @@
     }
 
     async function fetchLiveWeather() {
+      if (state.liveWeather.status === "running") return;
       const location = (state.risk.weatherLocation || state.project.location || "").trim();
       if (!location) {
         toast(t("Enter project location before fetching weather."));
@@ -584,6 +626,7 @@
       try {
         const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`;
         const geoResponse = await fetch(geoUrl);
+        if (!geoResponse.ok) throw new Error(`Weather geocoding failed: ${geoResponse.status}`);
         const geoData = await geoResponse.json();
         const place = geoData.results?.[0];
         if (!place) throw new Error(`Location not found: ${location}`);
@@ -794,7 +837,8 @@
       const obstacles = Array.isArray(room.obstacles) ? room.obstacles.map(normalizeAIObstacle) : [];
       const warnings = [
         ...(Array.isArray(room.warnings) ? room.warnings : []),
-        room.aiWarning || room.ai_warning || room.warning || ""
+        room.aiWarning || room.ai_warning || room.warning || "",
+        dimensions.source === "missing" ? "AI did not return reliable room length/width. Please enter site-measured dimensions for skirting and layout waste." : ""
       ].filter(Boolean);
 
       return {
@@ -807,6 +851,7 @@
         netArea,
         length: dimensions.length,
         width: dimensions.width,
+        dimensionSource: dimensions.source,
         confidence: clamp(confidence, 0, 100),
         bbox,
         obstacles,
@@ -820,7 +865,7 @@
       const explicitLength = num(room.length ?? room.roomLength ?? room.lengthM ?? room.length_m ?? room.dimensions?.length ?? room.dimensions?.lengthM);
       const explicitWidth = num(room.width ?? room.roomWidth ?? room.widthM ?? room.width_m ?? room.dimensions?.width ?? room.dimensions?.widthM);
       if (explicitLength > 0 && explicitWidth > 0) {
-        return { length: explicitLength, width: explicitWidth };
+        return { length: explicitLength, width: explicitWidth, source: "explicit" };
       }
 
       const safeArea = Math.max(0.01, num(area, 1));
@@ -830,15 +875,14 @@
       if (bbox?.width > 0 && bbox?.height > 0) {
         const ratioBox = bbox.unit === "ratio" || (bbox.x <= 1 && bbox.y <= 1 && bbox.width <= 1 && bbox.height <= 1);
         const aspect = ratioBox ? (bbox.width * imageAspect) / bbox.height : bbox.width / bbox.height;
-        if (Number.isFinite(aspect) && aspect > 0) {
+        if (Number.isFinite(aspect) && aspect > 0 && (aspect < 0.92 || aspect > 1.08)) {
           const length = Math.sqrt(safeArea / aspect);
           const width = safeArea / length;
-          return { length, width };
+          return { length, width, source: "bbox" };
         }
       }
 
-      const side = Math.sqrt(safeArea);
-      return { length: side, width: side };
+      return { length: "", width: "", source: "missing" };
     }
 
     function normalizeAIObstacle(obstacle) {
@@ -893,6 +937,7 @@
     }
 
     async function runAIDetection() {
+      if (state.aiStatus === "running") return;
       if (!state.uploadedPlan) {
         toast(t("Please upload a JPG/PNG/PDF or CAD exported image first."));
         state.activePage = "upload";
@@ -949,11 +994,12 @@
       const firstTile = state.tiles[0]?.id || "";
       const imported = state.aiResults.map(result => {
         const dimensions = inferRoomDimensions(result, result.grossArea, result.bbox, uploadedImageElement);
+        const shapeType = dimensions.source === "missing" && result.shapeType !== "Rectangle" ? "Manual Area" : result.shapeType;
         return {
           id: uid("room"),
           roomName: result.roomName.replace(/^Detected\s+/i, ""),
           roomType: result.roomType,
-          shapeType: result.shapeType,
+          shapeType,
           length: dimensions.length,
           width: dimensions.width,
           manualGrossArea: result.grossArea,
@@ -962,6 +1008,7 @@
           confidence: result.confidence,
           bbox: result.bbox,
           cropImage: result.cropImage,
+          dimensionSource: dimensions.source,
           aiWarning: result.aiWarning,
           obstacles: (result.obstacles || []).map(obs => ({ id: uid("obs"), type: obs.type, area: obs.area }))
         };
@@ -1122,7 +1169,7 @@ ${warnings.map(item => `- ${item}`).join("\n")}`;
           <div class="mx-auto max-w-7xl px-4 py-3">
             <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p class="text-xs font-black uppercase tracking-wide text-teal-700">${t("Research prototype")}</p>
+                <p class="text-xs font-black uppercase tracking-wide text-teal-700">${t("Engineering planning system")}</p>
                 <h1 class="text-xl font-black tracking-tight sm:text-2xl">${t("AI-Driven Tile Installation Planning System")}</h1>
                 <p class="mt-1 max-w-4xl text-sm font-semibold text-slate-500">${t("Localized estimator for Malaysian tiling contractors, with Gemini floor-plan detection, manual correction, material take-off, duration prediction, and thesis evaluation.")}</p>
               </div>
@@ -1203,13 +1250,13 @@ ${warnings.map(item => `- ${item}`).join("\n")}`;
         <section class="grid gap-4 lg:grid-cols-[1fr_22rem]">
           <div class="panel p-4">
             <h2 class="text-lg font-black">${t("Upload floor plan")}</h2>
-            <p class="mt-1 text-sm font-semibold text-slate-500">${t("JPG, PNG, PDF, or CAD exported image. JPG/PNG will show preview; PDF shows file name for prototype testing.")}</p>
+            <p class="mt-1 text-sm font-semibold text-slate-500">${t("JPG, PNG, PDF, or CAD exported image. JPG/PNG will show preview; PDF currently shows file name until PDF page rendering is added.")}</p>
             <label class="mt-4 block"><span class="field-label">${t("Choose file")}</span><input class="field" id="planFile" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf,.dwg,.dxf,.cad"></label>
             <div class="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3">
               <h3 class="mb-2 text-sm font-black">${t("Preview")}</h3>
               ${state.uploadedPlan ? (state.uploadedPlan.previewUrl
                 ? `<img class="max-h-[30rem] w-full rounded-lg object-contain" src="${state.uploadedPlan.previewUrl}" alt="floor plan preview">`
-                : `<div class="grid min-h-[16rem] place-items-center text-center text-sm font-bold text-slate-500">${escapeHtml(state.uploadedPlan.name)}<br>${t("PDF / non-image preview is file-name only in this prototype.")}</div>`)
+                : `<div class="grid min-h-[16rem] place-items-center text-center text-sm font-bold text-slate-500">${escapeHtml(state.uploadedPlan.name)}<br>${t("PDF / non-image preview currently shows the file name. Convert CAD to PDF/PNG before analysis.")}</div>`)
                 : `<div class="grid min-h-[16rem] place-items-center text-sm font-bold text-slate-500">${t("No floor plan uploaded yet.")}</div>`}
             </div>
           </div>
@@ -1322,6 +1369,7 @@ POST /api/extract-room-crops</pre>
                 ${roomField(room, "Manual gross area (m²)", "manualGrossArea", "number", "0.01")}
                 ${roomField(room, "Manual deducted area (m²)", "manualDeductedArea", "number", "0.01")}
               </div>
+              ${room.aiWarning ? `<p class="mt-3 rounded-lg bg-amber-50 p-2 text-xs font-bold text-amber-800">${escapeHtml(t(room.aiWarning))}</p>` : ""}
               <div class="mt-4 rounded-lg bg-slate-50 p-3">
                 <div class="grid gap-2 text-sm md:grid-cols-4">
                   <div><span class="font-bold text-slate-500">${t("Gross Area")}</span><strong class="block">${fmt(calc.grossArea)} m²</strong></div>
@@ -1378,6 +1426,9 @@ POST /api/extract-room-crops</pre>
                 ${input("Uneven floor factor", "settings.unevenFloorFactor", "number", "0.01")}
                 ${input("Cement kg per m²", "settings.cementKgPerM2", "number", "0.01")}
                 ${input("Sand m³ per m²", "settings.sandM3PerM2", "number", "0.001")}
+                ${input("Adhesive cost per 50kg bag (RM)", "settings.adhesiveCostPerBag", "number", "0.01")}
+                ${input("Cement cost per 50kg bag (RM)", "settings.cementCostPerBag", "number", "0.01")}
+                ${input("Sand cost per m³ (RM)", "settings.sandCostPerM3", "number", "0.01")}
                 ${input("Susu / adhesive factor", "settings.susuFactor", "number", "0.01")}
                 ${input("Skirting height (m)", "settings.skirtingHeight", "number", "0.01")}
               </div>
@@ -1579,19 +1630,19 @@ POST /api/extract-room-crops</pre>
 
     document.addEventListener("input", event => {
       const target = event.target;
-      if (target.matches("[data-bind]")) setPath(target.dataset.bind, target.type === "number" ? num(target.value) : target.value);
-      if (target.matches("[data-room]")) {
+      if (target.matches("[data-bind]")) setPath(target.dataset.bind, inputValue(target));
+      if (target.matches("[data-room-field]")) {
         const room = state.rooms.find(item => item.id === target.dataset.room);
-        if (room) room[target.dataset.roomField] = target.type === "number" ? num(target.value) : target.value;
+        if (room) room[target.dataset.roomField] = inputValue(target);
       }
-      if (target.matches("[data-obstacle]")) {
+      if (target.matches("[data-obstacle-field]")) {
         const room = state.rooms.find(item => item.id === target.dataset.room);
         const obs = room?.obstacles.find(item => item.id === target.dataset.obstacle);
-        if (obs) obs[target.dataset.obstacleField] = target.type === "number" ? num(target.value) : target.value;
+        if (obs) obs[target.dataset.obstacleField] = inputValue(target);
       }
-      if (target.matches("[data-tile]")) {
+      if (target.matches("[data-tile-field]")) {
         const tile = state.tiles.find(item => item.id === target.dataset.tile);
-        if (tile) tile[target.dataset.tileField] = target.type === "number" ? num(target.value) : target.value;
+        if (tile) tile[target.dataset.tileField] = inputValue(target);
       }
       saveState();
     });
@@ -1607,7 +1658,7 @@ POST /api/extract-room-crops</pre>
         handleUpload(target.files[0]);
         return;
       }
-      if (target.matches("[data-bind], [data-room], [data-obstacle], [data-tile]")) render();
+      if (target.matches("[data-bind], [data-room-field], [data-obstacle-field], [data-tile-field]")) render();
     });
 
     async function copyText(text, message) {
