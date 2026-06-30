@@ -454,7 +454,8 @@
     }
 
     function shapeArea(room) {
-      if (room.shapeType === "Manual Area") return Math.max(0, num(room.manualGrossArea));
+      const manualGrossArea = Math.max(0, num(room.manualGrossArea));
+      if (manualGrossArea > 0) return manualGrossArea;
       const base = Math.max(0, num(room.length) * num(room.width));
       if (room.shapeType === "Column Cutout") return base;
       if (room.shapeType === "L-Shape") return Math.max(0, base * 0.82);
@@ -789,6 +790,7 @@
       const confidenceRaw = num(room.confidence ?? room.confidence_score ?? room.confidenceScore, 0);
       const confidence = confidenceRaw <= 1 ? confidenceRaw * 100 : confidenceRaw;
       const bbox = normalizeBBox(room.bbox ?? room.boundingBox ?? room.bounding_box);
+      const dimensions = inferRoomDimensions(room, grossArea, bbox, image);
       const obstacles = Array.isArray(room.obstacles) ? room.obstacles.map(normalizeAIObstacle) : [];
       const warnings = [
         ...(Array.isArray(room.warnings) ? room.warnings : []),
@@ -803,6 +805,8 @@
         grossArea,
         deductedArea,
         netArea,
+        length: dimensions.length,
+        width: dimensions.width,
         confidence: clamp(confidence, 0, 100),
         bbox,
         obstacles,
@@ -810,6 +814,31 @@
         cropImage: image && bbox ? cropRoomImageFromPlan(image, bbox) : "",
         source: "Gemini"
       };
+    }
+
+    function inferRoomDimensions(room, area, bbox, image) {
+      const explicitLength = num(room.length ?? room.roomLength ?? room.lengthM ?? room.length_m ?? room.dimensions?.length ?? room.dimensions?.lengthM);
+      const explicitWidth = num(room.width ?? room.roomWidth ?? room.widthM ?? room.width_m ?? room.dimensions?.width ?? room.dimensions?.widthM);
+      if (explicitLength > 0 && explicitWidth > 0) {
+        return { length: explicitLength, width: explicitWidth };
+      }
+
+      const safeArea = Math.max(0.01, num(area, 1));
+      const naturalWidth = image?.naturalWidth || image?.width || 1;
+      const naturalHeight = image?.naturalHeight || image?.height || 1;
+      const imageAspect = naturalWidth / Math.max(1, naturalHeight);
+      if (bbox?.width > 0 && bbox?.height > 0) {
+        const ratioBox = bbox.unit === "ratio" || (bbox.x <= 1 && bbox.y <= 1 && bbox.width <= 1 && bbox.height <= 1);
+        const aspect = ratioBox ? (bbox.width * imageAspect) / bbox.height : bbox.width / bbox.height;
+        if (Number.isFinite(aspect) && aspect > 0) {
+          const length = Math.sqrt(safeArea / aspect);
+          const width = safeArea / length;
+          return { length, width };
+        }
+      }
+
+      const side = Math.sqrt(safeArea);
+      return { length: side, width: side };
     }
 
     function normalizeAIObstacle(obstacle) {
@@ -918,22 +947,25 @@
     function importAIResults() {
       if (!state.aiResults.length) return;
       const firstTile = state.tiles[0]?.id || "";
-      const imported = state.aiResults.map(result => ({
-        id: uid("room"),
-        roomName: result.roomName.replace(/^Detected\s+/i, ""),
-        roomType: result.roomType,
-        shapeType: result.shapeType,
-        length: Math.sqrt(Math.max(0.01, result.grossArea)),
-        width: result.grossArea / Math.sqrt(Math.max(0.01, result.grossArea)),
-        manualGrossArea: result.grossArea,
-        manualDeductedArea: Math.max(0, result.deductedArea - (result.obstacles || []).reduce((sum, obs) => sum + num(obs.area), 0)),
-        tileSchemeId: firstTile,
-        confidence: result.confidence,
-        bbox: result.bbox,
-        cropImage: result.cropImage,
-        aiWarning: result.aiWarning,
-        obstacles: (result.obstacles || []).map(obs => ({ id: uid("obs"), type: obs.type, area: obs.area }))
-      }));
+      const imported = state.aiResults.map(result => {
+        const dimensions = inferRoomDimensions(result, result.grossArea, result.bbox, uploadedImageElement);
+        return {
+          id: uid("room"),
+          roomName: result.roomName.replace(/^Detected\s+/i, ""),
+          roomType: result.roomType,
+          shapeType: result.shapeType,
+          length: dimensions.length,
+          width: dimensions.width,
+          manualGrossArea: result.grossArea,
+          manualDeductedArea: Math.max(0, result.deductedArea - (result.obstacles || []).reduce((sum, obs) => sum + num(obs.area), 0)),
+          tileSchemeId: firstTile,
+          confidence: result.confidence,
+          bbox: result.bbox,
+          cropImage: result.cropImage,
+          aiWarning: result.aiWarning,
+          obstacles: (result.obstacles || []).map(obs => ({ id: uid("obs"), type: obs.type, area: obs.area }))
+        };
+      });
       state.rooms.push(...imported);
       state.activePage = "rooms";
       toast(t("AI result imported. You can manually correct rooms now."));
