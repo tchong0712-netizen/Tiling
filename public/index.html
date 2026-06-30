@@ -49,7 +49,7 @@
       zh: {
         "AI-Driven Tile Installation Planning System": "AI 驱动瓷砖铺设规划系统",
         "Research prototype": "研究原型",
-        "Localized estimator for Malaysian tiling contractors, with AI mock detection, manual correction, material take-off, duration prediction, and thesis evaluation.": "面向马来西亚瓷砖承包商的本土化估算系统，包含 AI 模拟识别、人工修正、材料工程量、工期预测与论文评估。",
+        "Localized estimator for Malaysian tiling contractors, with Gemini floor-plan detection, manual correction, material take-off, duration prediction, and thesis evaluation.": "面向马来西亚瓷砖承包商的本土化估算系统，包含 Gemini 图纸识别、人工修正、材料工程量、工期预测与论文评估。",
         "Language": "语言",
         "Dashboard": "总览",
         "Floor Plan Upload": "图纸上传",
@@ -81,8 +81,15 @@
         "Preview": "预览",
         "No floor plan uploaded yet.": "尚未上传图纸。",
         "Uploaded file": "已上传文件",
+        "Gemini API connection": "Gemini API 连接",
+        "Cloudflare Worker endpoint": "Cloudflare Worker 接口",
+        "Gemini model override": "Gemini 模型覆盖",
+        "Leave blank to use Worker default": "留空则使用 Worker 默认模型",
+        "Run AI Detection sends the uploaded drawing to your Cloudflare Worker. No fake fallback is used.": "运行 AI 识别会把上传图纸发送到你的 Cloudflare Worker。系统不会用假数据兜底。",
         "Future API integration point": "未来 API 接入点",
         "Run AI Detection": "运行 AI 识别",
+        "Run Gemini Detection": "运行 Gemini 识别",
+        "Analyzing with Gemini...": "Gemini 正在识别...",
         "Import AI Result to Rooms & Shapes": "导入 AI 结果到房间与形状",
         "No AI detection result yet. Upload a floor plan, then run detection.": "还没有 AI 识别结果。请先上传图纸，再运行识别。",
         "Room Name": "房间名称",
@@ -161,6 +168,17 @@
         "Adjusted Duration": "调整后工期",
         "Daily Team Productivity": "团队每日效率",
         "Project Type": "项目类型",
+        "Weather search location": "天气查询地点",
+        "Fetch live weather": "获取实时天气",
+        "Fetching live weather...": "正在获取实时天气...",
+        "Live Weather Source": "实时天气来源",
+        "Weather updated": "天气已更新",
+        "Weather fetch failed": "天气获取失败",
+        "Next 24h rain": "未来 24 小时降雨量",
+        "Rain probability": "降雨概率",
+        "Last weather update": "最近天气更新时间",
+        "Live weather data is used to update rainfall, humidity and temperature before duration risk is calculated.": "实时天气会更新降雨、湿度与温度，再进入工期风险计算。",
+        "Enter project location before fetching weather.": "获取天气前请输入项目地点。",
         "Rainfall": "降雨",
         "Humidity (%)": "湿度 (%)",
         "Temperature (°C)": "温度 (°C)",
@@ -203,9 +221,16 @@
         "Copied. Paste into WhatsApp.": "已复制，可粘贴到 WhatsApp。",
         "Summary copied.": "摘要已复制。",
         "AI detection completed.": "AI 识别已完成。",
+        "Gemini detection completed.": "Gemini 识别已完成。",
+        "Gemini analysis failed.": "Gemini 识别失败。",
+        "Calling Gemini through Cloudflare Worker...": "正在通过 Cloudflare Worker 调用 Gemini...",
+        "This page is connected to Gemini through Cloudflare Worker. If the API fails, the app shows the real error and does not create fake results.": "此页面通过 Cloudflare Worker 连接 Gemini。如果 API 失败，系统会显示真实错误，不会生成假结果。",
+        "Please upload the drawing again before running Gemini. Browser security does not keep the file object after refresh.": "运行 Gemini 前请重新上传图纸。浏览器安全机制不会在刷新后保留原始文件对象。",
+        "Server returned no room detection result.": "服务器没有返回房间识别结果。",
+        "Last Gemini error": "最近 Gemini 错误",
+        "Gemini summary": "Gemini 摘要",
         "AI result imported. You can manually correct rooms now.": "AI 结果已导入，现在可以手动修正房间。",
         "Please upload a JPG/PNG/PDF or CAD exported image first.": "请先上传 JPG/PNG/PDF 或 CAD 导出图片。",
-        "This is a prototype mock result. Real backend endpoints are reserved in code comments.": "这是原型 mock 结果。真实后端接口已在代码注释中预留。",
         "Floor plan image crop unavailable for PDF/non-image upload.": "PDF/非图片上传暂时不能裁剪房间图。",
         "PDF / non-image preview is file-name only in this prototype.": "PDF / 非图片文件在此原型中只显示文件名。",
         "Interview adhesive note": "访谈参数：50kg 瓷砖胶约可铺 80-83 平方尺，即约 7.43-7.71 m²。本系统默认采用保守值 7.43 m²/包。",
@@ -230,7 +255,7 @@
     /* =========================================================
        State, Utility
        ========================================================= */
-    const STORAGE_KEY = "tiling-ai-home-v1";
+    const STORAGE_KEY = "tiling-ai-home-v2-production";
     const obstacleTypes = ["Column", "Void Area", "Staircase", "Fixed Cabinet", "Island Counter", "Other Obstacle"];
     const roomTypes = ["Living Room", "Bedroom", "Kitchen", "Bathroom", "Corridor", "Balcony", "Office", "Other"];
     const shapeTypes = ["Rectangle", "Column Cutout", "L-Shape", "U-Shape", "Polygon", "Hexagon", "Hollow Area", "Manual Area"];
@@ -310,15 +335,21 @@
       language: "en",
       activePage: "dashboard",
       project: {
-        name: "Terrace House Tiling Works",
+        name: "",
         client: "",
-        location: "Kuala Lumpur, Malaysia",
+        location: "",
         date: new Date().toISOString().slice(0, 10),
-        notes: "Prototype data can be replaced with thesis case project data."
+        notes: ""
       },
       uploadedPlan: null,
       aiResults: [],
       aiStatus: "idle",
+      aiError: "",
+      aiSummary: "",
+      api: {
+        backendUrl: "https://tilingai.tchong0712.workers.dev/api/analyze-floor-plan",
+        modelName: ""
+      },
       tiles: [
         { id: "tile-600", name: "Homogeneous Tile 600 x 600", length: 0.6, width: 0.6, piecesPerBox: 4, costPerBox: 58 },
         { id: "tile-300", name: "Anti-slip Tile 300 x 300", length: 0.3, width: 0.3, piecesPerBox: 11, costPerBox: 42 }
@@ -347,6 +378,7 @@
         equipmentFactor: 1.0
       },
       risk: {
+        weatherLocation: "Kuala Lumpur, Malaysia",
         projectType: "Mixed",
         rainfall: "Moderate",
         humidity: 78,
@@ -358,26 +390,35 @@
         siteStockAvailability: 75,
         equipmentFailure: 4
       },
+      liveWeather: {
+        status: "idle",
+        error: "",
+        source: "",
+        updatedAt: "",
+        locationLabel: "",
+        latitude: "",
+        longitude: "",
+        currentTemperature: 0,
+        currentHumidity: 0,
+        currentPrecipitation: 0,
+        next24hRain: 0,
+        maxRainProbability: 0
+      },
       accuracy: {
-        aiMaterial: 2600,
-        manualMaterial: 2850,
-        actualMaterial: 2680,
-        aiDuration: 4.2,
-        manualDuration: 5.6,
-        actualDuration: 4.5,
-        aiMinutes: 8,
-        manualMinutes: 55
+        aiMaterial: 0,
+        manualMaterial: 0,
+        actualMaterial: 0,
+        aiDuration: 0,
+        manualDuration: 0,
+        actualDuration: 0,
+        aiMinutes: 0,
+        manualMinutes: 0
       }
     };
 
-    defaultState.rooms = [
-      defaultRoom("Living Room", "Living Room", "Rectangle", 5.2, 4.1, "tile-600"),
-      { ...defaultRoom("Kitchen", "Kitchen", "L-Shape", 3.8, 3.4, "tile-300"), obstacles: [{ id: uid("obs"), type: "Fixed Cabinet", area: 0.65 }] },
-      defaultRoom("Bedroom 1", "Bedroom", "Rectangle", 4.0, 3.2, "tile-600")
-    ];
-
     let state = loadState();
     let uploadedImageElement = null;
+    let currentUploadedFile = null;
 
     function loadState() {
       try {
@@ -530,6 +571,86 @@
       return { rainfallRisk, typeRisk, humidityRisk, heatRisk, workerRisk, materialRisk, equipmentRisk, overall, level };
     }
 
+    async function fetchLiveWeather() {
+      const location = (state.risk.weatherLocation || state.project.location || "").trim();
+      if (!location) {
+        toast(t("Enter project location before fetching weather."));
+        return;
+      }
+      state.liveWeather.status = "running";
+      state.liveWeather.error = "";
+      render();
+      try {
+        const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`;
+        const geoResponse = await fetch(geoUrl);
+        const geoData = await geoResponse.json();
+        const place = geoData.results?.[0];
+        if (!place) throw new Error(`Location not found: ${location}`);
+
+        const forecastUrl = new URL("https://api.open-meteo.com/v1/forecast");
+        forecastUrl.search = new URLSearchParams({
+          latitude: place.latitude,
+          longitude: place.longitude,
+          current: "temperature_2m,relative_humidity_2m,precipitation,rain",
+          hourly: "temperature_2m,relative_humidity_2m,precipitation,precipitation_probability,rain",
+          forecast_days: "3",
+          timezone: "auto"
+        }).toString();
+        const weatherResponse = await fetch(forecastUrl);
+        if (!weatherResponse.ok) throw new Error(`Weather API HTTP ${weatherResponse.status}`);
+        const weatherData = await weatherResponse.json();
+        const hourly = weatherData.hourly || {};
+        const start = Math.max(0, (hourly.time || []).findIndex(time => new Date(time).getTime() >= Date.now()));
+        const end = start + 24;
+        const precipitation = (hourly.precipitation || []).slice(start, end).map(value => num(value));
+        const probability = (hourly.precipitation_probability || []).slice(start, end).map(value => num(value));
+        const humidity = (hourly.relative_humidity_2m || []).slice(start, end).map(value => num(value));
+        const temperature = (hourly.temperature_2m || []).slice(start, end).map(value => num(value));
+        const rainSum = precipitation.reduce((sum, value) => sum + value, 0);
+        const maxProbability = probability.length ? Math.max(...probability) : 0;
+        const avgHumidity = average(humidity, weatherData.current?.relative_humidity_2m);
+        const avgTemperature = average(temperature, weatherData.current?.temperature_2m);
+
+        state.risk.rainfall = rainfallLevelFromForecast(rainSum, maxProbability);
+        state.risk.humidity = Math.round(avgHumidity);
+        state.risk.temperature = Math.round(avgTemperature);
+        state.risk.weatherLocation = `${place.name}${place.admin1 ? ", " + place.admin1 : ""}${place.country ? ", " + place.country : ""}`;
+        state.liveWeather = {
+          status: "completed",
+          error: "",
+          source: "Open-Meteo",
+          updatedAt: new Date().toLocaleString(),
+          locationLabel: state.risk.weatherLocation,
+          latitude: place.latitude,
+          longitude: place.longitude,
+          currentTemperature: num(weatherData.current?.temperature_2m, avgTemperature),
+          currentHumidity: num(weatherData.current?.relative_humidity_2m, avgHumidity),
+          currentPrecipitation: num(weatherData.current?.precipitation, 0),
+          next24hRain: rainSum,
+          maxRainProbability: maxProbability
+        };
+        toast(t("Weather updated"));
+      } catch (error) {
+        state.liveWeather.status = "failed";
+        state.liveWeather.error = error.message || String(error);
+        toast(t("Weather fetch failed"));
+      }
+      render();
+    }
+
+    function average(values, fallback = 0) {
+      const clean = values.filter(value => Number.isFinite(value));
+      if (!clean.length) return num(fallback);
+      return clean.reduce((sum, value) => sum + value, 0) / clean.length;
+    }
+
+    function rainfallLevelFromForecast(rainMm, probability) {
+      if (rainMm >= 20 || probability >= 80) return "Heavy";
+      if (rainMm >= 5 || probability >= 55) return "Moderate";
+      if (rainMm > 0.3 || probability >= 25) return "Light";
+      return "None";
+    }
+
     function calculateDuration(totals = calculateTotals()) {
       const workers = Math.max(1, num(state.labour.workers, 2));
       const productivity = Math.max(0.01, num(state.labour.productivityPerWorker, 21.13));
@@ -561,10 +682,11 @@
     }
 
     /* =========================================================
-       Floor Plan Upload, AI Mock Detection, Room Crop
+       Floor Plan Upload, Gemini Detection, Room Crop
        ========================================================= */
     function handleUpload(file) {
       if (!file) return;
+      currentUploadedFile = file;
       if (state.uploadedPlan?.previewUrl?.startsWith("blob:")) URL.revokeObjectURL(state.uploadedPlan.previewUrl);
       const isImage = file.type.startsWith("image/");
       state.uploadedPlan = {
@@ -576,6 +698,8 @@
       };
       state.aiResults = [];
       state.aiStatus = "idle";
+      state.aiError = "";
+      state.aiSummary = "";
       uploadedImageElement = null;
       if (isImage) {
         const image = new Image();
@@ -585,73 +709,158 @@
       render();
     }
 
-    function mockAIAnalyzeFloorPlan() {
-      // Future backend API integration points:
-      // POST /api/upload-floor-plan
-      // POST /api/analyze-floor-plan
-      // POST /api/detect-rooms
-      // POST /api/extract-room-crops
-      const warning = state.uploadedPlan?.isImage ? "" : "Floor plan image crop unavailable for PDF/non-image upload.";
-      return [
-        {
-          id: uid("ai"),
-          roomName: "Detected Living Room",
-          roomType: "Living Room",
-          shapeType: "Rectangle",
-          grossArea: 21.32,
-          deductedArea: 0.35,
-          netArea: 20.97,
-          confidence: 91,
-          bbox: { x: 42, y: 48, width: 280, height: 185 },
-          obstacles: [{ type: "Column", area: 0.35 }],
-          aiWarning: warning
-        },
-        {
-          id: uid("ai"),
-          roomName: "Detected Kitchen",
-          roomType: "Kitchen",
-          shapeType: "L-Shape",
-          grossArea: 13.20,
-          deductedArea: 1.15,
-          netArea: 12.05,
-          confidence: 76,
-          bbox: { x: 338, y: 55, width: 205, height: 175 },
-          obstacles: [{ type: "Fixed Cabinet", area: 0.85 }, { type: "Void Area", area: 0.30 }],
-          aiWarning: "Low confidence: L-shape and cabinet zone require manual verification."
-        },
-        {
-          id: uid("ai"),
-          roomName: "Detected Bedroom",
-          roomType: "Bedroom",
-          shapeType: "Rectangle",
-          grossArea: 12.80,
-          deductedArea: 0,
-          netArea: 12.80,
-          confidence: 86,
-          bbox: { x: 70, y: 255, width: 220, height: 150 },
-          obstacles: [],
-          aiWarning: warning
-        }
-      ];
-    }
-
     function cropRoomImageFromPlan(imageElement, bbox) {
       if (!imageElement || !bbox) return "";
       const naturalWidth = imageElement.naturalWidth || imageElement.width;
       const naturalHeight = imageElement.naturalHeight || imageElement.height;
       if (!naturalWidth || !naturalHeight) return "";
-      const designWidth = 640;
-      const designHeight = 460;
-      const sx = clamp(bbox.x / designWidth * naturalWidth, 0, naturalWidth - 1);
-      const sy = clamp(bbox.y / designHeight * naturalHeight, 0, naturalHeight - 1);
-      const sw = clamp(bbox.width / designWidth * naturalWidth, 1, naturalWidth - sx);
-      const sh = clamp(bbox.height / designHeight * naturalHeight, 1, naturalHeight - sy);
+      const ratioBox = bbox.unit === "ratio" || (bbox.x <= 1 && bbox.y <= 1 && bbox.width <= 1 && bbox.height <= 1);
+      const sx = ratioBox ? clamp(bbox.x * naturalWidth, 0, naturalWidth - 1) : clamp(bbox.x, 0, naturalWidth - 1);
+      const sy = ratioBox ? clamp(bbox.y * naturalHeight, 0, naturalHeight - 1) : clamp(bbox.y, 0, naturalHeight - 1);
+      const sw = ratioBox ? clamp(bbox.width * naturalWidth, 1, naturalWidth - sx) : clamp(bbox.width, 1, naturalWidth - sx);
+      const sh = ratioBox ? clamp(bbox.height * naturalHeight, 1, naturalHeight - sy) : clamp(bbox.height, 1, naturalHeight - sy);
       const canvas = document.createElement("canvas");
       canvas.width = Math.max(1, Math.round(sw));
       canvas.height = Math.max(1, Math.round(sh));
       const ctx = canvas.getContext("2d");
       ctx.drawImage(imageElement, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
       return canvas.toDataURL("image/png");
+    }
+
+    function apiEndpoint() {
+      const configured = (state.api?.backendUrl || "").trim();
+      if (configured) return configured;
+      return location.protocol === "file:"
+        ? "https://tilingai.tchong0712.workers.dev/api/analyze-floor-plan"
+        : "/api/analyze-floor-plan";
+    }
+
+    async function analyzeFloorPlanWithGemini(file) {
+      const form = new FormData();
+      form.append("file", file, file.name);
+      form.append("payload", JSON.stringify({
+        language: state.language,
+        project: state.project,
+        settings: state.settings,
+        labour: state.labour,
+        risk: state.risk,
+        rooms: state.rooms.map(room => ({
+          roomName: room.roomName,
+          roomType: room.roomType,
+          shapeType: room.shapeType,
+          grossArea: roomCalc(room).grossArea,
+          netArea: roomCalc(room).netArea
+        })),
+        ai: {
+          modelName: state.api?.modelName || ""
+        }
+      }));
+
+      const response = await fetch(apiEndpoint(), { method: "POST", body: form });
+      const text = await response.text();
+      if (!response.ok) throw new Error(serverErrorMessage(text, response.status));
+      try {
+        return JSON.parse(text);
+      } catch {
+        throw new Error(text || `HTTP ${response.status}`);
+      }
+    }
+
+    function serverErrorMessage(text, status) {
+      try {
+        const data = JSON.parse(text);
+        return data.detail || data.error || data.message || `HTTP ${status}`;
+      } catch {
+        return text || `HTTP ${status}`;
+      }
+    }
+
+    function normalizeAIResponse(data, image) {
+      const sourceRooms = Array.isArray(data?.rooms) ? data.rooms : [];
+      if (!sourceRooms.length) throw new Error(t("Server returned no room detection result."));
+      state.aiSummary = data.summary || "";
+      return sourceRooms.map((room, index) => normalizeAIRoom(room, index, image));
+    }
+
+    function normalizeAIRoom(room, index, image) {
+      const grossArea = num(room.grossArea ?? room.gross_area_m2 ?? room.gross_area ?? room.area ?? room.netArea ?? room.net_area_m2);
+      const deductedArea = num(room.deductedArea ?? room.deduction_area_m2 ?? room.deducted_area ?? room.deductionArea);
+      const netArea = num(room.netArea ?? room.net_area_m2 ?? room.area, Math.max(0, grossArea - deductedArea));
+      const confidenceRaw = num(room.confidence ?? room.confidence_score ?? room.confidenceScore, 0);
+      const confidence = confidenceRaw <= 1 ? confidenceRaw * 100 : confidenceRaw;
+      const bbox = normalizeBBox(room.bbox ?? room.boundingBox ?? room.bounding_box);
+      const obstacles = Array.isArray(room.obstacles) ? room.obstacles.map(normalizeAIObstacle) : [];
+      const warnings = [
+        ...(Array.isArray(room.warnings) ? room.warnings : []),
+        room.aiWarning || room.ai_warning || room.warning || ""
+      ].filter(Boolean);
+
+      return {
+        id: uid("ai"),
+        roomName: room.roomName || room.room_name || room.name || `Room ${index + 1}`,
+        roomType: normalizeRoomType(room.roomType || room.room_type || room.type),
+        shapeType: normalizeShapeType(room.shapeType || room.shape || room.shape_type),
+        grossArea,
+        deductedArea,
+        netArea,
+        confidence: clamp(confidence, 0, 100),
+        bbox,
+        obstacles,
+        aiWarning: warnings.join(" "),
+        cropImage: image && bbox ? cropRoomImageFromPlan(image, bbox) : "",
+        source: "Gemini"
+      };
+    }
+
+    function normalizeAIObstacle(obstacle) {
+      return {
+        type: normalizeObstacleType(obstacle.type || obstacle.obstacleType || obstacle.name),
+        area: num(obstacle.area ?? obstacle.area_m2 ?? obstacle.size, 0)
+      };
+    }
+
+    function normalizeRoomType(value = "") {
+      const text = String(value).toLowerCase();
+      if (text.includes("living") || text.includes("dining") || text.includes("客")) return "Living Room";
+      if (text.includes("bed") || text.includes("卧")) return "Bedroom";
+      if (text.includes("kitchen") || text.includes("厨")) return "Kitchen";
+      if (text.includes("bath") || text.includes("toilet") || text.includes("洗") || text.includes("浴")) return "Bathroom";
+      if (text.includes("corridor") || text.includes("hall") || text.includes("走")) return "Corridor";
+      if (text.includes("balcony") || text.includes("阳")) return "Balcony";
+      if (text.includes("office") || text.includes("办")) return "Office";
+      return roomTypes.includes(value) ? value : "Other";
+    }
+
+    function normalizeShapeType(value = "") {
+      const text = String(value).toLowerCase();
+      if (text.includes("u")) return "U-Shape";
+      if (text.includes("l")) return "L-Shape";
+      if (text.includes("hex")) return "Hexagon";
+      if (text.includes("hollow") || text.includes("void")) return "Hollow Area";
+      if (text.includes("column")) return "Column Cutout";
+      if (text.includes("poly") || text.includes("irregular")) return "Polygon";
+      if (text.includes("manual")) return "Manual Area";
+      return shapeTypes.includes(value) ? value : "Rectangle";
+    }
+
+    function normalizeObstacleType(value = "") {
+      const text = String(value).toLowerCase();
+      if (text.includes("column") || text.includes("柱")) return "Column";
+      if (text.includes("void") || text.includes("open")) return "Void Area";
+      if (text.includes("stair")) return "Staircase";
+      if (text.includes("cabinet")) return "Fixed Cabinet";
+      if (text.includes("island")) return "Island Counter";
+      return obstacleTypes.includes(value) ? value : "Other Obstacle";
+    }
+
+    function normalizeBBox(bbox) {
+      if (!bbox) return null;
+      const x = num(bbox.x ?? bbox.left ?? bbox.x1);
+      const y = num(bbox.y ?? bbox.top ?? bbox.y1);
+      const width = num(bbox.width ?? bbox.w ?? ((bbox.x2 ?? bbox.right) - x));
+      const height = num(bbox.height ?? bbox.h ?? ((bbox.y2 ?? bbox.bottom) - y));
+      if (width <= 0 || height <= 0) return null;
+      return { x, y, width, height, unit: bbox.unit || bbox.units || "ratio" };
     }
 
     async function runAIDetection() {
@@ -661,21 +870,36 @@
         render();
         return;
       }
-      state.aiStatus = "running";
-      render();
-      await new Promise(resolve => setTimeout(resolve, 450));
-      let image = uploadedImageElement;
-      if (!image && state.uploadedPlan.previewUrl) {
-        image = await loadImage(state.uploadedPlan.previewUrl).catch(() => null);
-        uploadedImageElement = image;
+      if (!currentUploadedFile) {
+        toast(t("Please upload the drawing again before running Gemini. Browser security does not keep the file object after refresh."));
+        state.activePage = "upload";
+        render();
+        return;
       }
-      state.aiResults = mockAIAnalyzeFloorPlan().map(result => ({
-        ...result,
-        cropImage: image ? cropRoomImageFromPlan(image, result.bbox) : ""
-      }));
-      state.aiStatus = "completed";
-      state.activePage = "ai";
-      toast(t("AI detection completed."));
+      state.aiStatus = "running";
+      state.aiError = "";
+      state.aiSummary = t("Calling Gemini through Cloudflare Worker...");
+      render();
+      try {
+        let image = uploadedImageElement;
+        if (!image && state.uploadedPlan.previewUrl) {
+          image = await loadImage(state.uploadedPlan.previewUrl).catch(() => null);
+          uploadedImageElement = image;
+        }
+        const data = await analyzeFloorPlanWithGemini(currentUploadedFile);
+        state.aiResults = normalizeAIResponse(data, image);
+        state.aiStatus = "completed";
+        state.aiError = "";
+        state.activePage = "ai";
+        toast(t("Gemini detection completed."));
+      } catch (error) {
+        state.aiResults = [];
+        state.aiStatus = "failed";
+        state.aiError = error.message || String(error);
+        state.aiSummary = "";
+        state.activePage = "ai";
+        toast(t("Gemini analysis failed."));
+      }
       render();
     }
 
@@ -868,7 +1092,7 @@ ${warnings.map(item => `- ${item}`).join("\n")}`;
               <div>
                 <p class="text-xs font-black uppercase tracking-wide text-teal-700">${t("Research prototype")}</p>
                 <h1 class="text-xl font-black tracking-tight sm:text-2xl">${t("AI-Driven Tile Installation Planning System")}</h1>
-                <p class="mt-1 max-w-4xl text-sm font-semibold text-slate-500">${t("Localized estimator for Malaysian tiling contractors, with AI mock detection, manual correction, material take-off, duration prediction, and thesis evaluation.")}</p>
+                <p class="mt-1 max-w-4xl text-sm font-semibold text-slate-500">${t("Localized estimator for Malaysian tiling contractors, with Gemini floor-plan detection, manual correction, material take-off, duration prediction, and thesis evaluation.")}</p>
               </div>
               <label class="w-full max-w-[14rem]"><span class="field-label">${t("Language")}</span>
                 <select class="select" id="languageSwitch"><option value="en" ${state.language === "en" ? "selected" : ""}>English</option><option value="zh" ${state.language === "zh" ? "selected" : ""}>中文</option></select>
@@ -958,30 +1182,40 @@ ${warnings.map(item => `- ${item}`).join("\n")}`;
             </div>
           </div>
           <aside class="panel p-4">
-            <h3 class="text-base font-black">${t("Future API integration point")}</h3>
+            <h3 class="text-base font-black">${t("Gemini API connection")}</h3>
+            <p class="mt-1 text-sm font-semibold text-slate-500">${t("Run AI Detection sends the uploaded drawing to your Cloudflare Worker. No fake fallback is used.")}</p>
+            <div class="mt-3 grid gap-3">
+              ${input("Cloudflare Worker endpoint", "api.backendUrl")}
+              ${input("Gemini model override", "api.modelName")}
+            </div>
+            <p class="mt-2 text-xs font-bold text-slate-500">${t("Leave blank to use Worker default")}</p>
             <pre class="mt-3 overflow-auto rounded-lg bg-slate-950 p-3 text-xs text-slate-100">POST /api/upload-floor-plan
 POST /api/analyze-floor-plan
 POST /api/detect-rooms
 POST /api/extract-room-crops</pre>
-            <button class="mt-4 w-full rounded-lg bg-teal-700 px-4 py-3 text-sm font-black text-white" data-action="run-ai">${t("Run AI Detection")}</button>
+            <button class="mt-4 w-full rounded-lg bg-teal-700 px-4 py-3 text-sm font-black text-white" data-action="run-ai">${state.aiStatus === "running" ? t("Analyzing with Gemini...") : t("Run Gemini Detection")}</button>
           </aside>
         </section>`;
     }
 
     function renderAI() {
+      const isRunning = state.aiStatus === "running";
       return `
         <section class="grid gap-4">
           <div class="panel p-4">
             <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <h2 class="text-lg font-black">${t("AI Detection Result")}</h2>
-                <p class="mt-1 text-sm font-semibold text-slate-500">${t("This is a prototype mock result. Real backend endpoints are reserved in code comments.")}</p>
+                <p class="mt-1 text-sm font-semibold text-slate-500">${t("This page is connected to Gemini through Cloudflare Worker. If the API fails, the app shows the real error and does not create fake results.")}</p>
               </div>
               <div class="flex flex-wrap gap-2">
-                <button class="rounded-lg bg-teal-700 px-4 py-2 text-sm font-black text-white" data-action="run-ai">${t("Run AI Detection")}</button>
+                <button class="rounded-lg bg-teal-700 px-4 py-2 text-sm font-black text-white ${isRunning ? "opacity-60" : ""}" data-action="run-ai">${isRunning ? t("Analyzing with Gemini...") : t("Run Gemini Detection")}</button>
                 <button class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-700 ${state.aiResults.length ? "" : "opacity-40"}" data-action="import-ai">${t("Import AI Result to Rooms & Shapes")}</button>
               </div>
             </div>
+            <div class="mt-4 rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm font-bold text-teal-900">${escapeHtml(apiEndpoint())}</div>
+            ${state.aiSummary ? `<div class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-700"><span class="text-slate-500">${t("Gemini summary")}:</span> ${escapeHtml(t(state.aiSummary))}</div>` : ""}
+            ${state.aiError ? `<div class="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-800"><span>${t("Last Gemini error")}:</span> ${escapeHtml(state.aiError)}</div>` : ""}
           </div>
           ${state.aiResults.length ? `<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">${state.aiResults.map(renderAIResult).join("")}</div>` : `<div class="panel grid min-h-[16rem] place-items-center p-5 text-center text-sm font-bold text-slate-500">${t("No AI detection result yet. Upload a floor plan, then run detection.")}</div>`}
         </section>`;
@@ -1001,6 +1235,7 @@ POST /api/extract-room-crops</pre>
               <div><dt class="font-bold text-slate-500">${t("Net Tile Area")}</dt><dd>${fmt(result.netArea)} m²</dd></div>
               <div><dt class="font-bold text-slate-500">${t("Obstacles")}</dt><dd>${(result.obstacles || []).length}</dd></div>
             </dl>
+            ${result.source ? `<p class="mt-3 rounded-lg bg-slate-50 p-2 text-xs font-bold text-slate-600">${t(result.source)}</p>` : ""}
             ${result.aiWarning ? `<p class="mt-3 rounded-lg bg-amber-50 p-2 text-xs font-bold text-amber-800">${t(result.aiWarning)}</p>` : ""}
           </div>
         </article>`;
@@ -1177,11 +1412,15 @@ POST /api/extract-room-crops</pre>
 
     function renderRisk() {
       const risk = calculateWeatherRisk();
+      const weather = state.liveWeather || {};
+      const weatherRunning = weather.status === "running";
       return `
         <section class="grid gap-4 lg:grid-cols-[1fr_22rem]">
           <div class="panel p-4">
             <h2 class="text-lg font-black">${t("Weather & Risk")}</h2>
+            <p class="mt-1 text-sm font-semibold text-slate-500">${t("Live weather data is used to update rainfall, humidity and temperature before duration risk is calculated.")}</p>
             <div class="mt-3 grid gap-3 md:grid-cols-3">
+              ${input("Weather search location", "risk.weatherLocation")}
               ${select("Project Type", "risk.projectType", ["Indoor", "Outdoor", "Mixed"])}
               ${select("Rainfall", "risk.rainfall", ["None", "Light", "Moderate", "Heavy"])}
               ${input("Humidity (%)", "risk.humidity", "number", "1")}
@@ -1193,6 +1432,18 @@ POST /api/extract-room-crops</pre>
               ${input("Site Stock Availability (%)", "risk.siteStockAvailability", "number", "1")}
               ${input("Equipment Failure (%)", "risk.equipmentFailure", "number", "1")}
             </div>
+            <button class="mt-4 rounded-lg bg-teal-700 px-4 py-3 text-sm font-black text-white ${weatherRunning ? "opacity-60" : ""}" data-action="fetch-weather">${weatherRunning ? t("Fetching live weather...") : t("Fetch live weather")}</button>
+            ${weather.status === "completed" ? `<div class="mt-4 grid gap-2 rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm font-bold text-teal-900 md:grid-cols-2">
+              <div>${t("Live Weather Source")}: ${escapeHtml(weather.source)}</div>
+              <div>${t("Last weather update")}: ${escapeHtml(weather.updatedAt)}</div>
+              <div>${t("Location")}: ${escapeHtml(weather.locationLabel)}</div>
+              <div>${t("Temperature (°C)")}: ${fmt(weather.currentTemperature, 1)}</div>
+              <div>${t("Humidity (%)")}: ${fmt(weather.currentHumidity, 0)}</div>
+              <div>${t("Next 24h rain")}: ${fmt(weather.next24hRain, 1)} mm</div>
+              <div>${t("Rain probability")}: ${fmt(weather.maxRainProbability, 0)}%</div>
+              <div>${t("Rainfall")}: ${t(state.risk.rainfall)}</div>
+            </div>` : ""}
+            ${weather.status === "failed" ? `<div class="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-800">${t("Weather fetch failed")}: ${escapeHtml(weather.error)}</div>` : ""}
           </div>
           <aside class="panel p-4">
             <h3 class="font-black">${t("Risk Analysis")}</h3>
@@ -1270,6 +1521,7 @@ POST /api/extract-room-crops</pre>
       if (!action) return;
       const name = action.dataset.action;
       if (name === "run-ai") return runAIDetection();
+      if (name === "fetch-weather") return fetchLiveWeather();
       if (name === "import-ai") return importAIResults();
       if (name === "add-room") state.rooms.push(defaultRoom(`Room ${state.rooms.length + 1}`, "Other", "Rectangle", 3, 3, state.tiles[0]?.id || ""));
       if (name === "delete-room") state.rooms = state.rooms.filter(room => room.id !== action.dataset.room);
