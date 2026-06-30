@@ -7,18 +7,22 @@
   <style>
     :root {
       color-scheme: light;
-      --bg: #f6f7f2;
+      --bg: #f4f6f4;
       --surface: #ffffff;
       --surface-2: #eef3ef;
-      --ink: #172026;
-      --muted: #62707a;
-      --line: #d8ded7;
+      --ink: #16242b;
+      --muted: #5d6b74;
+      --line: #dde3dd;
       --accent: #0f766e;
+      --accent-dark: #0b4f49;
+      --accent-soft: #e6f4f1;
       --accent-2: #b45309;
       --danger: #b91c1c;
       --ok: #166534;
-      --shadow: 0 14px 32px rgba(23, 32, 38, 0.08);
-      --radius: 8px;
+      --shadow: 0 1px 2px rgba(23, 32, 38, 0.04), 0 8px 24px rgba(23, 32, 38, 0.05);
+      --shadow-sm: 0 1px 2px rgba(23, 32, 38, 0.05);
+      --radius: 10px;
+      --radius-sm: 8px;
     }
 
     * {
@@ -641,6 +645,214 @@
       white-space: nowrap;
     }
 
+    /* Brand mark: a small logo lockup so the tool reads as a product, not a doc. */
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .brand-logo {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 800;
+      flex: none;
+    }
+
+    .brand-mark .name {
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.1;
+      color: var(--ink);
+    }
+
+    .brand-mark .sub {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 14px;
+      border-radius: 999px;
+      border: 1px solid #d9a85f;
+      background: #fff8ec;
+      color: #8a3d06;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    /* Workflow stepper in the topbar — gives the guided, multi-step tool feel. */
+    .stepper {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      overflow-x: auto;
+      margin-bottom: 12px;
+      padding-bottom: 2px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .step {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 0;
+      background: transparent;
+      padding: 4px 6px;
+      white-space: nowrap;
+      color: var(--muted);
+    }
+
+    .step .dot {
+      display: grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1.5px solid var(--line);
+      background: var(--surface);
+      font-size: 12px;
+      font-weight: 800;
+      flex: none;
+    }
+
+    .step .step-label {
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+
+    .step.active .dot {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .step.active .step-label {
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .step.done .dot {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+    }
+
+    .step.done .step-label {
+      color: var(--accent-dark);
+    }
+
+    .step-sep {
+      width: 16px;
+      height: 1.5px;
+      background: var(--line);
+      flex: none;
+    }
+
+    /* KPI dashboard cards for the contractor overview. */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .kpi {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow-sm);
+      padding: 16px;
+    }
+
+    .kpi .kpi-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .kpi .kpi-value {
+      display: block;
+      margin-top: 8px;
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1.1;
+      color: var(--ink);
+    }
+
+    .kpi .kpi-foot {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .kpi.accent {
+      border-color: #9fd3cc;
+      background: linear-gradient(180deg, var(--accent-soft), #fff);
+    }
+
+    .kpi.accent .kpi-value {
+      color: var(--accent-dark);
+    }
+
+    .kpi.warn {
+      border-color: #e8bc80;
+      background: linear-gradient(180deg, #fff8ec, #fff);
+    }
+
+    .kpi.warn .kpi-value {
+      color: #8a3d06;
+    }
+
+    /* Discreet footer holding the research/thesis link. */
+    .app-footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 28px;
+      padding: 16px 4px 8px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .app-footer a {
+      color: var(--muted);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .app-footer a:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
+    .btn.primary:hover {
+      background: var(--accent-dark);
+      border-color: var(--accent-dark);
+    }
+
+    .nav button:hover {
+      border-color: var(--line);
+      background: var(--surface-2);
+      color: var(--ink);
+    }
+
     @media (max-width: 1100px) {
       .shell {
         grid-template-columns: 1fr;
@@ -681,6 +893,10 @@
       .flow {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+
+      .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
 
     @media (max-width: 760px) {
@@ -693,7 +909,8 @@
       .grid.two,
       .grid.three,
       .grid.four,
-      .flow {
+      .flow,
+      .kpi-grid {
         grid-template-columns: 1fr;
       }
 
@@ -713,6 +930,7 @@
       .sidebar,
       .topbar,
       .actions,
+      .app-footer,
       .no-print {
         display: none !important;
       }
@@ -736,49 +954,57 @@
 <body>
   <div class="shell">
     <aside class="sidebar no-print">
-      <div class="brand" id="brand">
-        <p class="eyebrow">Research prototype</p>
-        <h1>AI-Assisted Tile Estimation Prototype</h1>
-        <p class="hint">A thesis prototype comparing generative AI-assisted and conventional tiling estimation for Malaysian small contractors.</p>
-      </div>
+      <div class="brand" id="brand"></div>
       <label class="no-print" id="languageLabel" style="margin-bottom:14px;">Language
         <select id="languageSelect">
           <option value="zh">中文</option>
           <option value="en">English</option>
         </select>
       </label>
-      <button class="btn ghost no-print" id="resetDemoButton" style="width:100%; margin-bottom:14px;" type="button" data-action="reset-demo">重置为中文示例</button>
       <nav class="nav" id="nav"></nav>
     </aside>
 
     <main class="main">
       <header class="topbar no-print">
+        <div class="stepper" id="stepper"></div>
         <div class="summary" id="summary"></div>
       </header>
       <section class="content" id="view"></section>
+      <footer class="app-footer no-print" id="appFooter"></footer>
     </main>
   </div>
 
   <script>
     const STORAGE_KEY = "tile-planning-system-v2";
 
-    // Grouped navigation: the estimation workflow in usage order, then research/thesis pages.
-    const navGroups = [
+    // Two separate apps share one codebase and one state:
+    //  - "tool": the contractor-facing estimation workflow (default).
+    //  - "research": the thesis evaluation/simulation pages, reached via ?mode=research.
+    const APP_MODE = new URLSearchParams(location.search).get("mode") === "research" ? "research" : "tool";
+
+    // Tool workflow in usage order. Icons double as step numbers for the stepper.
+    const TOOL_NAV = [
       { label: "Workflow", items: [
-        ["overview", "O", "Overview"],
-        ["project", "P", "Project"],
-        ["ai", "A", "AI Pipeline"],
-        ["rooms", "R", "Rooms"],
-        ["materials", "M", "Materials"],
-        ["schedule", "S", "Schedule"],
-        ["weather", "W", "Weather"],
-        ["report", "T", "Report"]
-      ] },
+        ["overview", "1", "Overview"],
+        ["project", "2", "Project"],
+        ["ai", "3", "AI Detection"],
+        ["rooms", "4", "Rooms"],
+        ["materials", "5", "Materials"],
+        ["schedule", "6", "Schedule"],
+        ["report", "7", "Report"]
+      ] }
+    ];
+
+    const RESEARCH_NAV = [
       { label: "Research", items: [
         ["evaluation", "E", "Evaluation"],
         ["simulation", "X", "Simulation"]
       ] }
     ];
+
+    const navGroups = APP_MODE === "research" ? RESEARCH_NAV : TOOL_NAV;
+    // Flat list of view ids allowed in the current mode (used to guard navigation).
+    const allowedViews = navGroups.flatMap(group => group.items.map(item => item[0]));
 
     const i18n = {
       zh: {
@@ -797,6 +1023,19 @@
         "Evaluation": "评估",
         "Simulation": "模拟",
         "Report": "报告",
+        "AI Detection": "AI 识别",
+        "Tile Estimator": "瓷砖估算",
+        "Tile estimation tool": "瓷砖估算工具",
+        "Estimate tile material and installation time from a floor plan — upload a drawing, let AI detect rooms, review, and get a costed report.": "从平面图估算瓷砖用量与施工工期——上传图纸、AI 自动识别房间、人工复核,生成含成本的报告。",
+        "Research & thesis workspace": "研究 / 论文工作台",
+        "Thesis evaluation and simulation pages. Not part of the contractor tool.": "论文评估与模拟页面,不属于承包商工具。",
+        "Back to tool": "返回工具",
+        "Research / Thesis": "研究 / 论文",
+        "For thesis evaluation only": "仅用于论文评估",
+        "Irregular (AI area)": "不规则（AI 实测）",
+        "AI-measured net area": "AI 实测净面积",
+        "Step": "步骤",
+        "of": "/",
         "Planning workspace": "规划工作台",
         "Net floor area": "净面积",
         "Tile area with waste": "含损耗面积",
@@ -959,9 +1198,9 @@
         ,"Width (m)": "宽度 (m)"
         ,"L cut length (m)": "L 形扣除长度 (m)"
         ,"L cut width (m)": "L 形扣除宽度 (m)"
-        ,"Manual area (m2)": "手动面积 (m2)"
+        ,"Manual area (m²)": "手动面积 (m²)"
         ,"Manual perimeter (m)": "手动周长 (m)"
-        ,"Obstacle or void area (m2)": "障碍/空洞面积 (m2)"
+        ,"Obstacle or void area (m²)": "障碍/空洞面积 (m²)"
         ,"Skirting": "踢脚线"
         ,"Include skirting area": "包含踢脚线面积"
         ,"Living": "客厅"
@@ -975,7 +1214,7 @@
         ,"L-shape": "L 形"
         ,"Manual area": "手动面积"
         ,"Workers": "工人数"
-        ,"Productivity / worker / day (m2)": "每名工人每日效率 (m2)"
+        ,"Productivity / worker / day (m²)": "每名工人每日效率 (m²)"
         ,"Target duration (days)": "目标工期 (天)"
         ,"Complexity factor": "复杂度系数"
         ,"Weather delay (%)": "人工天气延误 (%)"
@@ -1049,15 +1288,17 @@
         ,"Global material settings": "全局材料设置"
         ,"Waste allowance (%)": "损耗率 (%)"
         ,"Skirting height (m)": "踢脚线高度 (m)"
-        ,"Adhesive coverage / 50kg bag (m2)": "每 50kg 瓷砖胶覆盖面积 (m2)"
+        ,"Adhesive coverage / 50kg bag (m²)": "每 50kg 瓷砖胶覆盖面积 (m²)"
         ,"Thickness factor": "厚度系数"
         ,"Adhesive cost / bag": "瓷砖胶每包成本"
-        ,"Grout kg / m2": "填缝剂 kg / m2"
+        ,"Transition / unallocated area (m²)": "过渡/未分配面积 (m²)"
+        ,"Grout joint width (mm)": "砖缝宽度 (mm)"
+        ,"Grout joint depth (mm)": "砖缝深度 (mm)"
         ,"Grout cost / kg": "填缝剂每 kg 成本"
-        ,"Cement bags / m2": "水泥包 / m2"
+        ,"Cement bags / m²": "水泥包 / m²"
         ,"Cement cost / bag": "水泥每包成本"
-        ,"Sand m3 / m2": "沙 m3 / m2"
-        ,"Sand cost / m3": "沙每 m3 成本"
+        ,"Sand m³ / m²": "沙 m³ / m²"
+        ,"Sand cost / m³": "沙每 m³ 成本"
         ,"Material output": "材料输出"
         ,"Configured waste": "当前设置损耗"
         ,"Adhesive": "瓷砖胶"
@@ -1149,6 +1390,7 @@
     const shapeTypes = [
       ["rectangle", "Rectangle"],
       ["l-shape", "L-shape"],
+      ["irregular", "Irregular (AI area)"],
       ["manual", "Manual area"]
     ];
 
@@ -1225,10 +1467,12 @@
       settings: {
         wastePercent: 10,
         skirtingHeight: 0.1,
+        transitionAreaM2: 0,
         adhesiveCoveragePerBag: 7.57,
         adhesiveCostPerBag: 28,
         thicknessFactor: 1,
-        groutKgPerM2: 0.18,
+        groutJointWidthMm: 3,
+        groutDepthMm: 10,
         groutCostPerKg: 6.5,
         cementBagPerM2: 0,
         cementCostPerBag: 18,
@@ -1278,6 +1522,14 @@
     let state = loadState();
     let weatherAutoStarted = false;
     let currentUploadedFile = null;
+
+    // Keep the active view consistent with the current app mode. The standalone
+    // Weather page was merged into Schedule, so redirect any saved "weather" view.
+    function normalizeActiveView() {
+      if (state.activeView === "weather") state.activeView = "schedule";
+      if (!allowedViews.includes(state.activeView)) state.activeView = allowedViews[0];
+    }
+    normalizeActiveView();
 
     function room(name, roomType, shape, length, width, cutLength, cutWidth, obstacleArea, tileId, skirting) {
       return {
@@ -1449,8 +1701,21 @@
       return state.tiles.find(item => item.id === id) || state.tiles[0];
     }
 
+    // Grout demand scales with tile size: smaller tiles mean more linear joint per
+    // m², so 300x300 needs far more grout than 600x600. Formula (per m²):
+    //   ((L+W) / (L*W)) * jointWidth * jointDepth * density, all mm, density kg/L.
+    function groutKgPerM2ForTile(tile) {
+      const lengthMm = Math.max(1, toNumber(tile?.length) * 1000);
+      const widthMm = Math.max(1, toNumber(tile?.width) * 1000);
+      const jointWidth = Math.max(0, toNumber(state.settings.groutJointWidthMm));
+      const jointDepth = Math.max(0, toNumber(state.settings.groutDepthMm));
+      const density = 1.6; // kg per litre of mixed cementitious grout
+      return ((lengthMm + widthMm) / (lengthMm * widthMm)) * jointWidth * jointDepth * density;
+    }
+
     function roomGrossArea(item) {
-      if (item.shape === "manual") return Math.max(0, toNumber(item.manualArea));
+      // Manual and AI-measured irregular rooms both store their area directly.
+      if (item.shape === "manual" || item.shape === "irregular") return Math.max(0, toNumber(item.manualArea));
       const base = Math.max(0, toNumber(item.length) * toNumber(item.width));
       if (item.shape === "l-shape") {
         return Math.max(0, base - Math.max(0, toNumber(item.cutLength) * toNumber(item.cutWidth)));
@@ -1463,7 +1728,8 @@
       const length = Math.max(0, toNumber(item.length));
       const width = Math.max(0, toNumber(item.width));
       if (!length || !width) return 0;
-      if (item.shape === "l-shape") return 2 * (length + width);
+      // An L-shape carved from a rectangle's corner keeps the bounding-rectangle
+      // perimeter, so length+width covers both cases.
       return 2 * (length + width);
     }
 
@@ -1480,21 +1746,46 @@
       const pieces = Math.ceil(areaWithWaste / eachTileArea);
       const boxes = Math.ceil(pieces / Math.max(1, toNumber(tileItem?.piecesPerBox, 1)));
       const tileCost = boxes * Math.max(0, toNumber(tileItem?.costPerBox));
-      return { gross, deduction, floorArea, skirtingLength, skirtingArea, tileArea, areaWithWaste, pieces, boxes, tileCost };
+      const groutKg = tileArea * groutKgPerM2ForTile(tileItem);
+      return { gross, deduction, floorArea, skirtingLength, skirtingArea, tileArea, areaWithWaste, pieces, boxes, tileCost, groutKg };
     }
 
     function calculateTotals() {
+      const waste = Math.max(0, toNumber(state.settings.wastePercent)) / 100;
       const rooms = state.rooms.map(item => ({ room: item, calc: roomCalc(item) }));
-      const floorArea = rooms.reduce((sum, item) => sum + item.calc.floorArea, 0);
-      const tileArea = rooms.reduce((sum, item) => sum + item.calc.tileArea, 0);
-      const areaWithWaste = rooms.reduce((sum, item) => sum + item.calc.areaWithWaste, 0);
-      const tilePieces = rooms.reduce((sum, item) => sum + item.calc.pieces, 0);
-      const tileBoxes = rooms.reduce((sum, item) => sum + item.calc.boxes, 0);
-      const tileCost = rooms.reduce((sum, item) => sum + item.calc.tileCost, 0);
+      let floorArea = rooms.reduce((sum, item) => sum + item.calc.floorArea, 0);
+      let tileArea = rooms.reduce((sum, item) => sum + item.calc.tileArea, 0);
+      let areaWithWaste = rooms.reduce((sum, item) => sum + item.calc.areaWithWaste, 0);
+      let tilePieces = rooms.reduce((sum, item) => sum + item.calc.pieces, 0);
+      let tileBoxes = rooms.reduce((sum, item) => sum + item.calc.boxes, 0);
+      let tileCost = rooms.reduce((sum, item) => sum + item.calc.tileCost, 0);
+      let groutKgRaw = rooms.reduce((sum, item) => sum + item.calc.groutKg, 0);
       const skirtingLength = rooms.reduce((sum, item) => sum + item.calc.skirtingLength, 0);
-      const adhesiveBags = Math.ceil((areaWithWaste / Math.max(0.01, toNumber(state.settings.adhesiveCoveragePerBag))) * Math.max(0, toNumber(state.settings.thicknessFactor, 1)));
+
+      // Transition / unallocated tiled area (corridors, door thresholds, strips
+      // between rooms) that per-room measurement misses. Kept separate from the
+      // cutting waste %; tiled with the primary scheme and screeded like floor.
+      const transitionArea = Math.max(0, toNumber(state.settings.transitionAreaM2));
+      if (transitionArea > 0) {
+        const defTile = state.tiles[0];
+        const eachTileArea = Math.max(0.0001, toNumber(defTile?.length) * toNumber(defTile?.width));
+        const transWithWaste = transitionArea * (1 + waste);
+        const transPieces = Math.ceil(transWithWaste / eachTileArea);
+        const transBoxes = Math.ceil(transPieces / Math.max(1, toNumber(defTile?.piecesPerBox, 1)));
+        floorArea += transitionArea;
+        tileArea += transitionArea;
+        areaWithWaste += transWithWaste;
+        tilePieces += transPieces;
+        tileBoxes += transBoxes;
+        tileCost += transBoxes * Math.max(0, toNumber(defTile?.costPerBox));
+        groutKgRaw += transitionArea * groutKgPerM2ForTile(defTile);
+      }
+
+      // Adhesive covers the installed substrate, so it shares grout's basis (net
+      // tiled area incl. skirting + transition), not the cutting-waste area.
+      const adhesiveBags = Math.ceil((tileArea / Math.max(0.01, toNumber(state.settings.adhesiveCoveragePerBag))) * Math.max(0, toNumber(state.settings.thicknessFactor, 1)));
       const adhesiveCost = adhesiveBags * Math.max(0, toNumber(state.settings.adhesiveCostPerBag));
-      const groutKg = Math.ceil(tileArea * Math.max(0, toNumber(state.settings.groutKgPerM2)) * 10) / 10;
+      const groutKg = Math.ceil(groutKgRaw * 10) / 10;
       const groutCost = groutKg * Math.max(0, toNumber(state.settings.groutCostPerKg));
       const cementBags = Math.ceil(floorArea * Math.max(0, toNumber(state.settings.cementBagPerM2)));
       const cementCost = cementBags * Math.max(0, toNumber(state.settings.cementCostPerBag));
@@ -1504,6 +1795,7 @@
       return {
         rooms,
         roomCount: state.rooms.length,
+        transitionArea,
         floorArea,
         tileArea,
         areaWithWaste,
@@ -1528,13 +1820,18 @@
       const productivity = Math.max(0.1, toNumber(state.schedule.productivityPerWorker, 1));
       const dailyOutput = workers * productivity;
       const baseDays = totals.floorArea / dailyOutput;
+      // Live weather forecast supersedes the static weather-delay assumption when
+      // available, so rain risk is not counted twice.
+      const usingLiveWeather = state.weather.enabled && state.weather.current;
+      const weatherRisk = usingLiveWeather
+        ? liveWeatherRiskPercent()
+        : toNumber(state.schedule.weatherDelayPercent) * 0.35;
       const riskPercent = (
-        toNumber(state.schedule.weatherDelayPercent) * 0.35 +
+        weatherRisk +
         toNumber(state.schedule.workerAbsencePercent) * 0.25 +
         toNumber(state.schedule.materialRiskPercent) * 0.25 +
         toNumber(state.schedule.equipmentRiskPercent) * 0.15 +
-        realWorldRiskPercent() +
-        liveWeatherRiskPercent()
+        realWorldRiskPercent()
       );
       const adjustedDays = baseDays * Math.max(0.1, toNumber(state.schedule.complexityFactor, 1)) * (1 + riskPercent / 100);
       const bufferDays = adjustedDays * Math.max(0, toNumber(state.schedule.bufferPercent)) / 100;
@@ -1811,20 +2108,28 @@ This is not final evidence. It is a planning simulation that helps define the as
     function render() {
       renderBrand();
       renderNav();
+      renderStepper();
       renderSummary();
       renderView();
+      renderFooter();
       requestAnimationFrame(drawPlan);
       saveState();
     }
 
     function renderBrand() {
-      document.title = t("AI-Assisted Tile Estimation Prototype");
+      const research = APP_MODE === "research";
+      document.title = research ? `${t("Tile Estimator")} · ${t("Research / Thesis")}` : t("Tile Estimator");
       const brand = document.getElementById("brand");
       if (brand) {
         brand.innerHTML = `
-          <p class="eyebrow">${t("Research prototype")}</p>
-          <h1>${t("AI-Assisted Tile Estimation Prototype")}</h1>
-          <p class="hint">${t("A thesis prototype comparing generative AI-assisted and conventional tiling estimation for Malaysian small contractors.")}</p>
+          <div class="brand-mark">
+            <span class="brand-logo" aria-hidden="true">▦</span>
+            <span>
+              <span class="name">${t("Tile Estimator")}</span><br>
+              <span class="sub">${research ? t("Research / Thesis") : t("Tile estimation tool")}</span>
+            </span>
+          </div>
+          ${research ? `<div class="mode-badge">● ${t("For thesis evaluation only")}</div>` : ""}
         `;
       }
       const languageSelect = document.getElementById("languageSelect");
@@ -1833,8 +2138,52 @@ This is not final evidence. It is a planning simulation that helps define the as
       if (languageLabel) {
         languageLabel.childNodes[0].nodeValue = `${t("Language")} `;
       }
-      const resetButton = document.getElementById("resetDemoButton");
-      if (resetButton) resetButton.textContent = t("Reset to Chinese demo");
+    }
+
+    // Topbar workflow stepper (tool mode only). Steps come from TOOL_NAV order;
+    // steps before the active one render as "done".
+    function renderStepper() {
+      const stepper = document.getElementById("stepper");
+      if (!stepper) return;
+      const topbar = document.querySelector(".topbar");
+      if (APP_MODE !== "tool") {
+        stepper.innerHTML = "";
+        stepper.style.display = "none";
+        if (topbar) topbar.style.display = "none";
+        return;
+      }
+      if (topbar) topbar.style.display = "";
+      stepper.style.display = "";
+      const items = TOOL_NAV[0].items;
+      const activeIndex = Math.max(0, items.findIndex(([id]) => id === state.activeView));
+      stepper.innerHTML = items.map(([id, icon, label], index) => {
+        const cls = index === activeIndex ? "active" : index < activeIndex ? "done" : "";
+        const dot = index < activeIndex ? "✓" : icon;
+        const sep = index < items.length - 1 ? `<span class="step-sep" aria-hidden="true"></span>` : "";
+        return `
+          <button type="button" class="step ${cls}" data-action="view" data-view="${id}">
+            <span class="dot" aria-hidden="true">${dot}</span>
+            <span class="step-label">${t(label)}</span>
+          </button>${sep}
+        `;
+      }).join("");
+    }
+
+    function renderFooter() {
+      const footer = document.getElementById("appFooter");
+      if (!footer) return;
+      const year = state.project.date ? state.project.date.slice(0, 4) : "";
+      if (APP_MODE === "research") {
+        footer.innerHTML = `
+          <span>${t("Research & thesis workspace")}</span>
+          <a href="./">${t("Back to tool")} →</a>
+        `;
+      } else {
+        footer.innerHTML = `
+          <span>${t("Tile Estimator")}${year ? ` · ${h(year)}` : ""}</span>
+          <a href="?mode=research" title="${t("For thesis evaluation only")}">${t("Research / Thesis")} →</a>
+        `;
+      }
     }
 
     function renderNav() {
@@ -1850,11 +2199,17 @@ This is not final evidence. It is a planning simulation that helps define the as
     }
 
     function renderSummary() {
+      const summaryEl = document.getElementById("summary");
+      if (APP_MODE === "research") {
+        summaryEl.innerHTML = "";
+        summaryEl.style.display = "none";
+        return;
+      }
       const totals = calculateTotals();
       const schedule = calculateSchedule(totals);
-      document.getElementById("summary").innerHTML = `
-        ${metric(t("Net floor area"), `${fmt(totals.floorArea)} m2`, "accent")}
-        ${metric(t("Tile area with waste"), `${fmt(totals.areaWithWaste)} m2`)}
+      summaryEl.innerHTML = `
+        ${metric(t("Net floor area"), `${fmt(totals.floorArea)} m²`, "accent")}
+        ${metric(t("Tile area with waste"), `${fmt(totals.areaWithWaste)} m²`)}
         ${metric(t("Tile boxes"), fmt(totals.tileBoxes, 0))}
         ${metric(t("Material cost"), money(totals.materialCost), "accent")}
         ${metric(t("Final duration"), `${fmt(schedule.finalDays, 1)} ${state.language === "zh" ? "天" : "days"}`, schedule.level === "High" ? "warn" : "")}
@@ -1898,65 +2253,62 @@ This is not final evidence. It is a planning simulation that helps define the as
     function renderOverview() {
       const totals = calculateTotals();
       const schedule = calculateSchedule(totals);
-      const evaluation = calculateEvaluation(totals, schedule);
+      const zh = state.language === "zh";
+      const work = workabilityLevel();
+      const kpi = (label, value, foot, tone = "") => `
+        <div class="kpi ${tone}">
+          <span class="kpi-label">${t(label)}</span>
+          <span class="kpi-value">${value}</span>
+          ${foot ? `<span class="kpi-foot">${foot}</span>` : ""}
+        </div>
+      `;
       return `
-        ${renderHead(t("Overview"), state.language === "zh" ? "核心结果、天气影响和论文评估集中在一页，方便测试和展示。" : "Key outputs, weather impact, and research metrics in one clean view.", `
+        ${renderHead(t("Overview"), zh ? "当前项目的瓷砖用量、材料成本和预计工期一目了然。" : "Tile quantities, material cost, and estimated duration for the current project at a glance.", `
           <button class="btn primary" type="button" data-action="view" data-view="rooms">${t("Edit rooms")}</button>
           <button class="btn" type="button" data-action="view" data-view="report">${t("Open report")}</button>
         `)}
+        <div class="kpi-grid">
+          ${kpi("Net floor area", `${fmt(totals.floorArea)} m²`, `${totals.roomCount} ${zh ? "个房间" : "rooms"}`, "accent")}
+          ${kpi("Tile boxes", fmt(totals.tileBoxes, 0), `${fmt(totals.tilePieces, 0)} ${zh ? "片瓷砖" : "pieces"}`)}
+          ${kpi("Material cost", money(totals.materialCost), `${zh ? "含" : "incl."} ${percent(state.settings.wastePercent)} ${zh ? "损耗" : "waste"}`, "accent")}
+          ${kpi("Final duration", `${fmt(schedule.finalDays, 1)} ${zh ? "天" : "days"}`, `${zh ? "延误风险" : "Delay risk"}: ${t(schedule.level)}`, schedule.level === "High" ? "warn" : "")}
+        </div>
+        <div style="height:18px;"></div>
         <div class="layout">
           <div class="grid">
-            <div class="canvas-box">
-              <canvas id="planCanvas" aria-label="Diagram preview of entered rooms"></canvas>
-            </div>
-            <div class="grid three">
-              ${metric(t("Estimated tile pieces"), fmt(totals.tilePieces, 0))}
-              ${metric(t("Adhesive bags"), `${fmt(totals.adhesiveBags, 0)} ${state.language === "zh" ? "包" : "bags"}`)}
-              ${metric(t("Delay risk"), `${t(schedule.level)} (${percent(schedule.riskPercent)})`, schedule.level === "High" ? "warn" : "")}
+            <div class="panel">
+              <div class="section-title">
+                <h3>${zh ? "房间布局预览" : "Room layout preview"}</h3>
+                <button class="btn ghost" type="button" data-action="view" data-view="rooms">${t("Edit rooms")}</button>
+              </div>
+              <div class="canvas-box">
+                <canvas id="planCanvas" aria-label="Diagram preview of entered rooms"></canvas>
+              </div>
             </div>
             <div class="panel">
               <div class="section-title">
-                <h3>${t("Live weather")}</h3>
-                <span class="tag ${workabilityLevel() === "Good" ? "ok" : workabilityLevel() === "Caution" ? "warn" : "danger"}">${t(workabilityLevel())}</span>
+                <h3>${zh ? "天气与工期风险" : "Weather & schedule risk"}</h3>
+                <span class="tag ${work === "Good" ? "ok" : work === "Caution" ? "warn" : "danger"}">${t(work)}</span>
               </div>
               <div class="grid three">
                 ${metric(t("Weather risk add-on"), percent(liveWeatherRiskPercent()), liveWeatherRiskPercent() >= 12 ? "warn" : "")}
-                ${metric(t("Workability"), t(workabilityLevel()))}
-                ${metric(t("Weather status"), t(state.weather.status))}
+                ${metric(t("Adhesive bags"), `${fmt(totals.adhesiveBags, 0)} ${zh ? "包" : "bags"}`)}
+                ${metric(t("Recommended workers"), schedule.recommendedWorkers)}
               </div>
-            </div>
-            <div class="panel">
-              <div class="section-title">
-                <h3>${t("Thesis objective dashboard")}</h3>
-                <span class="tag ok">${t("AI-assisted vs conventional")}</span>
-              </div>
-              <div class="grid three">
-                ${metric(t("Objective 1: accuracy"), `AI ${percent(evaluation.aiMaterialError)} / manual ${percent(evaluation.manualMaterialError)}`)}
-                ${metric(t("Objective 2: time"), state.language === "zh" ? `节省 ${percent(evaluation.timeSaving)}` : `${percent(evaluation.timeSaving)} saved`, "accent")}
-                ${metric(t("Objective 3: usability"), state.ai.humanReview ? t("Human review enabled") : t("AI direct output"), state.ai.humanReview ? "" : "warn")}
-              </div>
-            </div>
-            <div class="panel">
-              <div class="section-title">
-                <h3>${t("Research evaluation snapshot")}</h3>
-                <span class="tag ${evaluation.modelMaterialError <= 10 ? "ok" : "warn"}">${t("This model material error")} ${percent(evaluation.modelMaterialError)}</span>
-              </div>
-              <div class="grid three">
-                ${metric(t("Model duration error"), percent(evaluation.modelDurationError))}
-                ${metric(t("AI vs actual material error"), percent(evaluation.aiMaterialError))}
-                ${metric(t("Time saving"), percent(evaluation.timeSaving), "accent")}
-              </div>
+              <p class="hint" style="margin:12px 0 0;">${zh ? "工期已结合实时天气、工地条件和缓冲。可在「工期」页查看明细与刷新天气。" : "Duration already factors in live weather, site conditions, and buffer. See the Schedule step for detail and to refresh weather."}</p>
             </div>
           </div>
           <aside class="panel">
             <h3>${t("Current assumptions")}</h3>
             <ul class="assumption-list">
               <li><span>${t("Tile waste allowance")}</span><strong>${percent(state.settings.wastePercent)}</strong></li>
-              <li><span>${t("Adhesive coverage per 50kg bag")}</span><strong>${fmt(state.settings.adhesiveCoveragePerBag)} m2</strong></li>
+              <li><span>${t("Adhesive coverage per 50kg bag")}</span><strong>${fmt(state.settings.adhesiveCoveragePerBag)} m²</strong></li>
               <li><span>${t("Thickness adjustment factor")}</span><strong>${fmt(state.settings.thicknessFactor, 2)}x</strong></li>
-              <li><span>${t("Worker productivity")}</span><strong>${fmt(state.schedule.productivityPerWorker, 1)} ${state.language === "zh" ? "m2/天" : "m2/day"}</strong></li>
+              <li><span>${t("Worker productivity")}</span><strong>${fmt(state.schedule.productivityPerWorker, 1)} ${zh ? "m²/天" : "m²/day"}</strong></li>
               <li><span>${t("Recommended workers for target")}</span><strong>${schedule.recommendedWorkers}</strong></li>
             </ul>
+            <div style="height:14px;"></div>
+            <button class="btn primary" type="button" data-action="view" data-view="project" style="width:100%;">${zh ? "开始：填写项目并上传图纸" : "Start: project & upload drawing"}</button>
           </aside>
         </div>
       `;
@@ -1980,18 +2332,6 @@ This is not final evidence. It is a planning simulation that helps define the as
               <label style="margin-top:12px;">${t("Notes")}
                 <textarea data-bind="project.notes">${h(state.project.notes)}</textarea>
               </label>
-            </div>
-            <div class="panel">
-              <div class="section-title">
-                <h3>${t("Research objective mapping")}</h3>
-                <span class="tag ok">${t("Thesis aligned")}</span>
-              </div>
-              <ul class="assumption-list">
-                <li><span>${t("Objective 1")}</span><strong>${t("Material accuracy")}</strong></li>
-                <li><span>${t("Objective 2")}</span><strong>${t("Workflow preparation time")}</strong></li>
-                <li><span>${t("Objective 3")}</span><strong>${t("Practical usability")}</strong></li>
-                <li><span>${t("Comparison design")}</span><strong>${t("AI vs conventional")}</strong></li>
-              </ul>
             </div>
             <div class="panel">
               <div class="section-title">
@@ -2055,7 +2395,7 @@ This is not final evidence. It is a planning simulation that helps define the as
         <tr>
           <td>${h(item.name)}</td>
           <td>${h(t(item.roomType))}</td>
-          <td>${fmt(item.area)} m2</td>
+          <td>${fmt(item.area)} m²</td>
           <td><span class="tag ${item.confidence >= state.ai.confidenceThreshold ? "ok" : "warn"}">${percent(item.confidence)}</span></td>
         </tr>
       `).join("");
@@ -2142,7 +2482,7 @@ This is not final evidence. It is a planning simulation that helps define the as
           <aside class="panel">
             <h3>${zh ? "AI 输出预览" : "AI output preview"}</h3>
             <ul class="assumption-list">
-              <li><span>${t("Current net floor area")}</span><strong>${fmt(totals.floorArea)} m2</strong></li>
+              <li><span>${t("Current net floor area")}</span><strong>${fmt(totals.floorArea)} m²</strong></li>
               <li><span>${t("Tile boxes")}</span><strong>${fmt(totals.tileBoxes, 0)}</strong></li>
               <li><span>${t("Material cost")}</span><strong>${money(totals.materialCost)}</strong></li>
               <li><span>${zh ? "工期" : "Duration"}</span><strong>${fmt(schedule.finalDays, 1)} ${zh ? "天" : "days"}</strong></li>
@@ -2183,11 +2523,11 @@ This is not final evidence. It is a planning simulation that helps define the as
           <aside class="panel">
             <h3>${t("Room totals")}</h3>
             <ul class="assumption-list">
-              <li><span>${t("Gross entered area")}</span><strong>${fmt(totals.rooms.reduce((sum, item) => sum + item.calc.gross, 0))} m2</strong></li>
-              <li><span>${t("Deductions")}</span><strong>${fmt(totals.rooms.reduce((sum, item) => sum + item.calc.deduction, 0))} m2</strong></li>
-              <li><span>${t("Net floor area")}</span><strong>${fmt(totals.floorArea)} m2</strong></li>
+              <li><span>${t("Gross entered area")}</span><strong>${fmt(totals.rooms.reduce((sum, item) => sum + item.calc.gross, 0))} m²</strong></li>
+              <li><span>${t("Deductions")}</span><strong>${fmt(totals.rooms.reduce((sum, item) => sum + item.calc.deduction, 0))} m²</strong></li>
+              <li><span>${t("Net floor area")}</span><strong>${fmt(totals.floorArea)} m²</strong></li>
               <li><span>${t("Skirting length")}</span><strong>${fmt(totals.skirtingLength)} m</strong></li>
-              <li><span>${t("Tile area incl. skirting")}</span><strong>${fmt(totals.tileArea)} m2</strong></li>
+              <li><span>${t("Tile area incl. skirting")}</span><strong>${fmt(totals.tileArea)} m²</strong></li>
             </ul>
             <div style="height:14px;"></div>
             <div class="canvas-box">
@@ -2204,11 +2544,12 @@ This is not final evidence. It is a planning simulation that helps define the as
         <article class="card room-card">
           <header>
             <div>
-              <h3>${h(item.name || `Room ${index + 1}`)} ${item.needsReview ? `<span class="tag warn">${state.language === "zh" ? "待复核" : "Review"}</span>` : ""}</h3>
+              <h3>${h(item.name || `Room ${index + 1}`)} ${item.needsReview ? `<span class="tag warn">${state.language === "zh" ? "待复核" : "Review"}</span>` : ""} ${item.shape === "irregular" ? `<span class="tag">${t("AI-measured net area")}</span>` : ""}</h3>
               ${item.aiWarning ? `<p class="hint">${h(item.aiWarning)}</p>` : ""}
+              ${(item.shape === "manual" || item.shape === "irregular") && item.skirting ? `<p class="hint">${state.language === "zh" ? "踢脚线长度按面积估算的周长计算,请核对下方「手动周长」。" : "Skirting length uses a perimeter estimated from area — verify “Manual perimeter” below."}</p>` : ""}
               <div class="room-total">
-                <span>${t("Gross")} ${fmt(calc.gross)} m2</span>
-                <span>${t("Net")} ${fmt(calc.floorArea)} m2</span>
+                <span>${t("Gross")} ${fmt(calc.gross)} m²</span>
+                <span>${t("Net")} ${fmt(calc.floorArea)} m²</span>
                 <span>${t("Tiles")} ${fmt(calc.pieces, 0)} ${state.language === "zh" ? "片" : "pcs"}</span>
                 <span>${t("Boxes")} ${fmt(calc.boxes, 0)}</span>
               </div>
@@ -2231,9 +2572,9 @@ This is not final evidence. It is a planning simulation that helps define the as
             ${roomInput(item, "L cut width (m)", "cutWidth", "number", "0.01")}
           </div>
           <div class="grid four">
-            ${roomInput(item, "Manual area (m2)", "manualArea", "number", "0.01")}
+            ${roomInput(item, "Manual area (m²)", "manualArea", "number", "0.01")}
             ${roomInput(item, "Manual perimeter (m)", "perimeter", "number", "0.01")}
-            ${roomInput(item, "Obstacle or void area (m2)", "obstacleArea", "number", "0.01")}
+            ${roomInput(item, "Obstacle or void area (m²)", "obstacleArea", "number", "0.01")}
             <label>${t("Skirting")}
               <span class="check-row"><input type="checkbox" data-room="${item.id}" data-room-field="skirting" ${item.skirting ? "checked" : ""}> ${t("Include skirting area")}</span>
             </label>
@@ -2274,21 +2615,26 @@ This is not final evidence. It is a planning simulation that helps define the as
               <h3>${t("Global material settings")}</h3>
               <div class="grid four">
                 ${input("Waste allowance (%)", "settings.wastePercent", "number", "1")}
+                ${input("Transition / unallocated area (m²)", "settings.transitionAreaM2", "number", "0.01")}
                 ${input("Skirting height (m)", "settings.skirtingHeight", "number", "0.01")}
-                ${input("Adhesive coverage / 50kg bag (m2)", "settings.adhesiveCoveragePerBag", "number", "0.01")}
                 ${input("Thickness factor", "settings.thicknessFactor", "number", "0.01")}
               </div>
               <div class="grid four" style="margin-top:12px;">
+                ${input("Adhesive coverage / 50kg bag (m²)", "settings.adhesiveCoveragePerBag", "number", "0.01")}
                 ${input("Adhesive cost / bag", "settings.adhesiveCostPerBag", "number", "0.01")}
-                ${input("Grout kg / m2", "settings.groutKgPerM2", "number", "0.01")}
+                ${input("Grout joint width (mm)", "settings.groutJointWidthMm", "number", "0.5")}
+                ${input("Grout joint depth (mm)", "settings.groutDepthMm", "number", "0.5")}
+              </div>
+              <div class="grid four" style="margin-top:12px;">
                 ${input("Grout cost / kg", "settings.groutCostPerKg", "number", "0.01")}
-                ${input("Cement bags / m2", "settings.cementBagPerM2", "number", "0.001")}
+                ${input("Cement bags / m²", "settings.cementBagPerM2", "number", "0.001")}
+                ${input("Cement cost / bag", "settings.cementCostPerBag", "number", "0.01")}
+                ${input("Sand m³ / m²", "settings.sandM3PerM2", "number", "0.001")}
               </div>
               <div class="grid two" style="margin-top:12px;">
-                ${input("Cement cost / bag", "settings.cementCostPerBag", "number", "0.01")}
-                ${input("Sand m3 / m2", "settings.sandM3PerM2", "number", "0.001")}
-                ${input("Sand cost / m3", "settings.sandCostPerM3", "number", "0.01")}
+                ${input("Sand cost / m³", "settings.sandCostPerM3", "number", "0.01")}
               </div>
+              <p class="hint" style="margin:12px 0 0;">${state.language === "zh" ? "过渡面积用于走廊、门槛、房间之间铺砖但未单独建房间的区域,与损耗率分开计算。填缝剂用量按每种砖的尺寸和砖缝自动估算。" : "Transition area covers corridors, thresholds and strips tiled between rooms but not entered as a room; it is separate from the waste %. Grout demand is estimated per tile size and joint."}</p>
             </div>
             <aside class="panel">
               <h3>${t("Material output")}</h3>
@@ -2300,7 +2646,7 @@ This is not final evidence. It is a planning simulation that helps define the as
                 <li><span>${t("Adhesive cost")}</span><strong>${money(totals.adhesiveCost)}</strong></li>
                 <li><span>${t("Grout")}</span><strong>${fmt(totals.groutKg, 1)} kg</strong></li>
                 <li><span>${t("Cement")}</span><strong>${fmt(totals.cementBags, 0)} ${state.language === "zh" ? "包" : "bags"}</strong></li>
-                <li><span>${t("Sand")}</span><strong>${fmt(totals.sandM3, 3)} m3</strong></li>
+                <li><span>${t("Sand")}</span><strong>${fmt(totals.sandM3, 3)} m³</strong></li>
                 <li><span>${t("Total material cost")}</span><strong>${money(totals.materialCost)}</strong></li>
               </ul>
             </aside>
@@ -2312,42 +2658,84 @@ This is not final evidence. It is a planning simulation that helps define the as
     function renderSchedule() {
       const totals = calculateTotals();
       const schedule = calculateSchedule(totals);
+      const zh = state.language === "zh";
+      const forecastRows = state.weather.daily.length ? state.weather.daily.map(day => `
+        <tr>
+          <td>${h(day.time)}</td>
+          <td>${h(t(weatherCodeText(day.weather_code)))}</td>
+          <td>${fmt(day.temperature_2m_min, 0)}-${fmt(day.temperature_2m_max, 0)} C</td>
+          <td>${fmt(day.precipitation_sum, 1)} mm</td>
+          <td>${fmt(day.precipitation_probability_max, 0)}%</td>
+          <td>${fmt(day.wind_speed_10m_max, 1)} km/h</td>
+        </tr>
+      `).join("") : `<tr><td colspan="6">${zh ? "还没有天气预报。请输入地区并刷新。" : "No forecast yet. Enter a location and refresh."}</td></tr>`;
+
       return `
-        ${renderHead(t("Schedule"), state.language === "zh" ? "工期会结合净面积、工人数、效率、复杂度、实时天气、工地风险和缓冲天数自动修正。" : "Duration is adjusted by area, manpower, productivity, complexity, live weather, site risk, and buffer days.", `
+        ${renderHead(t("Schedule"), zh ? "工期会结合净面积、工人数、效率、复杂度、实时天气、工地风险和缓冲天数自动修正。" : "Duration is adjusted by area, manpower, productivity, complexity, live weather, site risk, and buffer days.", `
           <button class="btn primary" type="button" data-action="refresh-weather">${t("Refresh weather")}</button>
         `)}
         <div class="layout">
-          <div class="panel">
-            <h3>${state.language === "zh" ? "人工与效率输入" : "Labour and productivity inputs"}</h3>
-            <div class="grid four">
-              ${input("Workers", "schedule.workers", "number", "1")}
-              ${input("Productivity / worker / day (m2)", "schedule.productivityPerWorker", "number", "0.1")}
-              ${input("Target duration (days)", "schedule.targetDays", "number", "0.1")}
-              ${input("Complexity factor", "schedule.complexityFactor", "number", "0.01")}
+          <div class="grid">
+            <div class="panel">
+              <h3>${zh ? "人工与效率输入" : "Labour and productivity inputs"}</h3>
+              <div class="grid four">
+                ${input("Workers", "schedule.workers", "number", "1")}
+                ${input("Productivity / worker / day (m²)", "schedule.productivityPerWorker", "number", "0.1")}
+                ${input("Target duration (days)", "schedule.targetDays", "number", "0.1")}
+                ${input("Complexity factor", "schedule.complexityFactor", "number", "0.01")}
+              </div>
+              <div class="grid four" style="margin-top:12px;">
+                ${input("Weather delay (%)", "schedule.weatherDelayPercent", "number", "1")}
+                ${input("Worker absence (%)", "schedule.workerAbsencePercent", "number", "1")}
+                ${input("Material risk (%)", "schedule.materialRiskPercent", "number", "1")}
+                ${input("Equipment risk (%)", "schedule.equipmentRiskPercent", "number", "1")}
+              </div>
+              <div class="grid two" style="margin-top:12px;">
+                ${input("Public holiday days", "schedule.publicHolidayDays", "number", "0.5")}
+                ${input("Buffer (%)", "schedule.bufferPercent", "number", "1")}
+              </div>
             </div>
-            <div class="grid four" style="margin-top:12px;">
-              ${input("Weather delay (%)", "schedule.weatherDelayPercent", "number", "1")}
-              ${input("Worker absence (%)", "schedule.workerAbsencePercent", "number", "1")}
-              ${input("Material risk (%)", "schedule.materialRiskPercent", "number", "1")}
-              ${input("Equipment risk (%)", "schedule.equipmentRiskPercent", "number", "1")}
-            </div>
-            <div class="grid two" style="margin-top:12px;">
-              ${input("Public holiday days", "schedule.publicHolidayDays", "number", "0.5")}
-              ${input("Buffer (%)", "schedule.bufferPercent", "number", "1")}
+
+            <div class="panel">
+              <div class="section-title">
+                <h3>${zh ? "实时天气（影响工期）" : "Live weather (affects duration)"}</h3>
+                <span class="tag ${state.weather.status === "Live" ? "ok" : state.weather.status === "Error" ? "danger" : "warn"}">${h(t(state.weather.status))}</span>
+              </div>
+              <p class="hint" style="margin:-4px 0 12px;">${zh ? "联网获取项目地区天气与未来 7 天预报，自动修正户外/混合施工的工期风险。" : "Fetches live weather and a 7-day forecast, then adjusts schedule risk for outdoor or mixed work."}</p>
+              <div class="grid three">
+                ${input(zh ? "项目地区 / 城市" : "Project location / city", "weather.locationQuery")}
+                ${selectInput(zh ? "天气影响范围" : "Work exposure", "site.workExposure", ["Indoor only", "Mixed indoor/outdoor", "Outdoor work"])}
+                <label>${zh ? "启用实时天气" : "Use live weather"}
+                  <span class="check-row"><input type="checkbox" data-bind="weather.enabled" ${state.weather.enabled ? "checked" : ""}> ${zh ? "纳入工期计算" : "Include in schedule calculation"}</span>
+                </label>
+              </div>
+              <div class="actions" style="margin-top:12px;">
+                <button class="btn" type="button" data-action="refresh-weather">${t("Refresh weather")}</button>
+              </div>
+              <div style="height:12px;"></div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>${t("Date")}</th><th>${t("Condition")}</th><th>${t("Temp")}</th><th>${t("Rain")}</th><th>${t("Rain chance")}</th><th>${t("Wind")}</th></tr></thead>
+                  <tbody>${forecastRows}</tbody>
+                </table>
+              </div>
+              ${state.weather.error ? `<p class="hint" style="color:var(--danger);margin-top:10px;">${h(state.weather.error)}</p>` : ""}
+              <p class="hint" style="margin-top:10px;">${h(state.weather.aiNote)}</p>
             </div>
           </div>
+
           <aside class="panel">
             <h3>${t("Duration output")}</h3>
             <ul class="assumption-list">
-              <li><span>${t("Daily output")}</span><strong>${fmt(schedule.dailyOutput)} m2/day</strong></li>
+              <li><span>${t("Daily output")}</span><strong>${fmt(schedule.dailyOutput)} m²/day</strong></li>
               <li><span>${t("Weather risk add-on")}</span><strong>${percent(liveWeatherRiskPercent())}</strong></li>
               <li><span>${t("Workability")}</span><strong>${t(workabilityLevel())}</strong></li>
               <li><span>${t("Real-world risk add-on")}</span><strong>${percent(realWorldRiskPercent())}</strong></li>
-              <li><span>${t("Base duration")}</span><strong>${fmt(schedule.baseDays, 1)} ${state.language === "zh" ? "天" : "days"}</strong></li>
+              <li><span>${t("Base duration")}</span><strong>${fmt(schedule.baseDays, 1)} ${zh ? "天" : "days"}</strong></li>
               <li><span>${t("Risk score")}</span><strong>${percent(schedule.riskPercent)}</strong></li>
-              <li><span>${t("Adjusted duration")}</span><strong>${fmt(schedule.adjustedDays, 1)} ${state.language === "zh" ? "天" : "days"}</strong></li>
-              <li><span>${t("Buffer days")}</span><strong>${fmt(schedule.bufferDays, 1)} ${state.language === "zh" ? "天" : "days"}</strong></li>
-              <li><span>${t("Final duration")}</span><strong>${fmt(schedule.finalDays, 1)} ${state.language === "zh" ? "天" : "days"}</strong></li>
+              <li><span>${t("Adjusted duration")}</span><strong>${fmt(schedule.adjustedDays, 1)} ${zh ? "天" : "days"}</strong></li>
+              <li><span>${t("Buffer days")}</span><strong>${fmt(schedule.bufferDays, 1)} ${zh ? "天" : "days"}</strong></li>
+              <li><span>${t("Final duration")}</span><strong>${fmt(schedule.finalDays, 1)} ${zh ? "天" : "days"}</strong></li>
               <li><span>${t("Recommended workers")}</span><strong>${schedule.recommendedWorkers}</strong></li>
               <li><span>${t("Delay risk level")}</span><strong>${t(schedule.level)}</strong></li>
             </ul>
@@ -2449,7 +2837,9 @@ This is not final evidence. It is a planning simulation that helps define the as
       const schedule = calculateSchedule(totals);
       const evaluation = calculateEvaluation(totals, schedule);
       return `
-        ${renderHead("Research validation", "Compare AI estimation, manual estimation, actual project results, and this model output.", "")}
+        ${renderHead("Research validation", "Compare AI estimation, manual estimation, actual project results, and this model output.", `
+          <button class="btn ghost" type="button" data-action="reset-demo">${t("Reset to Chinese demo")}</button>
+        `)}
         <div class="layout">
           <div class="grid">
             <div class="panel">
@@ -2654,6 +3044,7 @@ This is not final evidence. It is a planning simulation that helps define the as
         state = structuredClone(defaultState);
         state.language = "zh";
         currentUploadedFile = null;
+        normalizeActiveView();
         render();
         toast(t("Chinese demo reset"));
         return;
@@ -2724,11 +3115,12 @@ This is not final evidence. It is a planning simulation that helps define the as
       state.plan.aiDraft = [
         { name: state.language === "zh" ? "识别客厅" : "Detected Living", roomType: "Living", shape: "rectangle", area: 20.8, confidence: Math.max(50, 88 - qualityPenalty) },
         { name: state.language === "zh" ? "识别卧室" : "Detected Bedroom", roomType: "Bedroom", shape: "rectangle", area: 12.9, confidence: Math.max(50, 84 - qualityPenalty) },
-        { name: state.language === "zh" ? "识别厨房" : "Detected Kitchen", roomType: "Kitchen", shape: "l-shape", area: 11.6, confidence: Math.max(50, 76 - qualityPenalty) }
+        { name: state.language === "zh" ? "识别厨房" : "Detected Kitchen", roomType: "Kitchen", shape: "l-shape", area: 11.6, confidence: Math.max(50, 76 - qualityPenalty) },
+        { name: state.language === "zh" ? "识别不规则阳台" : "Detected Irregular Balcony", roomType: "Balcony", shape: "irregular", area: 6.4, confidence: Math.max(45, 68 - qualityPenalty), warning: state.language === "zh" ? "形状不规则，面积按图纸实测，请现场核对。" : "Irregular shape; area measured from drawing — verify on site." }
       ];
       state.ai.outputSummary = state.language === "zh"
-        ? "模拟 AI 从图纸中识别出三个房间。厨房置信度低于复核阈值，承包商需要在最终订料前确认尺寸。"
-        : "Simulated AI extracted three rooms from the drawing. Kitchen confidence is below the review threshold, so the contractor should validate dimensions before final material ordering.";
+        ? "模拟 AI 从图纸中识别出四个房间，其中阳台为不规则形状（按实测净面积）。厨房和阳台置信度低于复核阈值，承包商需要在最终订料前确认尺寸。"
+        : "Simulated AI extracted four rooms, including an irregular balcony (measured net area). Kitchen and balcony confidence is below the review threshold, so the contractor should validate dimensions before final material ordering.";
       state.ai.lastRawResponse = state.ai.outputSummary;
       const needsReview = createRoomsFromDraft(state.plan.aiDraft);
       state.plan.lastImportedCount = state.plan.aiDraft.length;
@@ -2824,8 +3216,11 @@ This is not final evidence. It is a planning simulation that helps define the as
 
     function normalizeAiShape(shape) {
       const value = String(shape || "").toLowerCase();
+      // Irregular/polygon rooms: AI reports a measured net area, so keep them as
+      // "irregular" (area-driven) rather than collapsing to a fake rectangle.
+      if (value.includes("irregular") || value.includes("polygon") || value.includes("free")) return "irregular";
       if (value.includes("l")) return "l-shape";
-      if (value.includes("manual") || value.includes("irregular") || value.includes("polygon")) return "manual";
+      if (value.includes("manual")) return "manual";
       return "rectangle";
     }
 
@@ -2844,11 +3239,14 @@ This is not final evidence. It is a planning simulation that helps define the as
         const area = Math.max(0, toNumber(item.area));
         const below = toNumber(item.confidence) < toNumber(state.ai.confidenceThreshold);
         if (below) needsReviewCount += 1;
+        // Preserve AI-detected irregular rooms as "irregular"; everything else keeps
+        // the AI area exact via "manual" (we don't fake length/width).
+        const shape = item.shape === "irregular" ? "irregular" : "manual";
         state.rooms.push({
           id: uid("room"),
           name: item.name,
           roomType: item.roomType,
-          shape: "manual",
+          shape,
           length: 0,
           width: 0,
           cutLength: 0,
@@ -2913,12 +3311,12 @@ This is not final evidence. It is a planning simulation that helps define the as
       const schedule = calculateSchedule(totals);
       const evaluation = calculateEvaluation(totals, schedule);
       const roomLines = totals.rooms.map(({ room, calc }, index) => {
-        return `${index + 1}. ${room.name} | ${room.roomType} | ${room.shape} | gross ${fmt(calc.gross)} m2 | net ${fmt(calc.floorArea)} m2 | tile area ${fmt(calc.tileArea)} m2 | ${fmt(calc.pieces, 0)} pcs | ${fmt(calc.boxes, 0)} boxes`;
+        return `${index + 1}. ${room.name} | ${room.roomType} | ${room.shape} | gross ${fmt(calc.gross)} m² | net ${fmt(calc.floorArea)} m² | tile area ${fmt(calc.tileArea)} m² | ${fmt(calc.pieces, 0)} pcs | ${fmt(calc.boxes, 0)} boxes`;
       }).join("\n");
 
       if (state.language === "zh") {
         const zhRoomLines = totals.rooms.map(({ room, calc }, index) => {
-          return `${index + 1}. ${room.name} | ${t(room.roomType)} | ${t(room.shape)} | 毛面积 ${fmt(calc.gross)} m2 | 净面积 ${fmt(calc.floorArea)} m2 | 含踢脚线面积 ${fmt(calc.tileArea)} m2 | ${fmt(calc.pieces, 0)} 片 | ${fmt(calc.boxes, 0)} 箱`;
+          return `${index + 1}. ${room.name} | ${t(room.roomType)} | ${t(room.shape)} | 毛面积 ${fmt(calc.gross)} m² | 净面积 ${fmt(calc.floorArea)} m² | 含踢脚线面积 ${fmt(calc.tileArea)} m² | ${fmt(calc.pieces, 0)} 片 | ${fmt(calc.boxes, 0)} 箱`;
         }).join("\n");
 
         return `AI 辅助瓷砖估算原型报告
@@ -2970,9 +3368,10 @@ AI 天气建议：${state.weather.aiNote || "-"}
 
 房间测量与人工复核
 房间数量：${totals.roomCount}
-净面积：${fmt(totals.floorArea)} m2
-含踢脚线瓷砖面积：${fmt(totals.tileArea)} m2
-含损耗面积：${fmt(totals.areaWithWaste)} m2
+净面积（含过渡面积）：${fmt(totals.floorArea)} m²
+其中过渡/未分配面积：${fmt(totals.transitionArea)} m²
+含踢脚线瓷砖面积：${fmt(totals.tileArea)} m²
+含损耗面积：${fmt(totals.areaWithWaste)} m²
 踢脚线长度：${fmt(totals.skirtingLength)} m
 
 ${zhRoomLines || "尚未输入房间。"}
@@ -2982,19 +3381,20 @@ ${zhRoomLines || "尚未输入房间。"}
 瓷砖片数：${fmt(totals.tilePieces, 0)}
 瓷砖箱数：${fmt(totals.tileBoxes, 0)}
 瓷砖成本：${money(totals.tileCost)}
-瓷砖胶覆盖假设：${fmt(state.settings.adhesiveCoveragePerBag)} m2 / 50kg
+瓷砖胶覆盖假设：${fmt(state.settings.adhesiveCoveragePerBag)} m² / 50kg
 厚度修正系数：${fmt(state.settings.thicknessFactor, 2)}x
-瓷砖胶：${fmt(totals.adhesiveBags, 0)} 包
+瓷砖胶（按净铺贴面积）：${fmt(totals.adhesiveBags, 0)} 包
 瓷砖胶成本：${money(totals.adhesiveCost)}
+砖缝假设：缝宽 ${fmt(state.settings.groutJointWidthMm, 1)} mm / 缝深 ${fmt(state.settings.groutDepthMm, 1)} mm（按砖尺寸估算用量）
 填缝剂：${fmt(totals.groutKg, 1)} kg
 水泥：${fmt(totals.cementBags, 0)} 包
-沙：${fmt(totals.sandM3, 3)} m3
+沙：${fmt(totals.sandM3, 3)} m³
 材料总成本：${money(totals.materialCost)}
 
 人工与工期预测
 工人数：${state.schedule.workers}
-每名工人每日效率：${fmt(state.schedule.productivityPerWorker, 1)} m2/day
-团队每日产量：${fmt(schedule.dailyOutput)} m2/day
+每名工人每日效率：${fmt(state.schedule.productivityPerWorker, 1)} m²/day
+团队每日产量：${fmt(schedule.dailyOutput)} m²/day
 复杂度系数：${fmt(state.schedule.complexityFactor, 2)}x
 基础工期：${fmt(schedule.baseDays, 1)} 天
 总风险分数：${percent(schedule.riskPercent)}
@@ -3073,9 +3473,10 @@ Weather AI note: ${state.weather.aiNote || "-"}
 
 Room Measurement and Manual Correction
 Room count: ${totals.roomCount}
-Net floor area: ${fmt(totals.floorArea)} m2
-Tile area including skirting: ${fmt(totals.tileArea)} m2
-Area after waste allowance: ${fmt(totals.areaWithWaste)} m2
+Net floor area (incl. transition): ${fmt(totals.floorArea)} m²
+Of which transition / unallocated area: ${fmt(totals.transitionArea)} m²
+Tile area including skirting: ${fmt(totals.tileArea)} m²
+Area after waste allowance: ${fmt(totals.areaWithWaste)} m²
 Skirting length: ${fmt(totals.skirtingLength)} m
 
 ${roomLines || "No rooms entered."}
@@ -3085,19 +3486,20 @@ Waste allowance: ${percent(state.settings.wastePercent)}
 Tile pieces: ${fmt(totals.tilePieces, 0)}
 Tile boxes: ${fmt(totals.tileBoxes, 0)}
 Tile cost: ${money(totals.tileCost)}
-Adhesive coverage assumption: ${fmt(state.settings.adhesiveCoveragePerBag)} m2 per 50kg bag
+Adhesive coverage assumption: ${fmt(state.settings.adhesiveCoveragePerBag)} m² per 50kg bag
 Thickness factor: ${fmt(state.settings.thicknessFactor, 2)}x
-Adhesive bags: ${fmt(totals.adhesiveBags, 0)}
+Adhesive bags (on net tiled area): ${fmt(totals.adhesiveBags, 0)}
 Adhesive cost: ${money(totals.adhesiveCost)}
+Grout joints: ${fmt(state.settings.groutJointWidthMm, 1)} mm wide / ${fmt(state.settings.groutDepthMm, 1)} mm deep (demand by tile size)
 Grout: ${fmt(totals.groutKg, 1)} kg
 Cement: ${fmt(totals.cementBags, 0)} bags
-Sand: ${fmt(totals.sandM3, 3)} m3
+Sand: ${fmt(totals.sandM3, 3)} m³
 Total material cost: ${money(totals.materialCost)}
 
 Labour and Duration Prediction
 Workers: ${state.schedule.workers}
-Productivity per worker: ${fmt(state.schedule.productivityPerWorker, 1)} m2/day
-Daily output: ${fmt(schedule.dailyOutput)} m2/day
+Productivity per worker: ${fmt(state.schedule.productivityPerWorker, 1)} m²/day
+Daily output: ${fmt(schedule.dailyOutput)} m²/day
 Complexity factor: ${fmt(state.schedule.complexityFactor, 2)}x
 Base duration: ${fmt(schedule.baseDays, 1)} days
 Risk score: ${percent(schedule.riskPercent)}
@@ -3241,7 +3643,7 @@ The floor-plan AI detection in this static version is simulated. A production ve
         ctx.font = "700 12px Inter, Arial";
         ctx.fillText(item.name || `Room ${index + 1}`, x + 8, y + 19);
         ctx.font = "12px Inter, Arial";
-        ctx.fillText(`${fmt(calc.floorArea, 1)} m2`, x + 8, y + 37);
+        ctx.fillText(`${fmt(calc.floorArea, 1)} m²`, x + 8, y + 37);
 
         x += roomWidth + 18;
         rowHeight = Math.max(rowHeight, roomHeight);
