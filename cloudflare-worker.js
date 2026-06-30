@@ -20,7 +20,7 @@ export default {
     if (url.pathname === "/api/upload-floor-plan") {
       return withCors(json({
         ok: true,
-        message: "Upload is handled by the multipart /api/analyze-floor-plan request in this prototype."
+        message: "Upload is handled by the multipart /api/analyze-floor-plan request in this version."
       }));
     }
 
