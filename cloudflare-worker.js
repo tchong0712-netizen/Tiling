@@ -1,3 +1,10 @@
+const ANALYZE_PATHS = new Set([
+  "/api/analyze",
+  "/api/analyze-floor-plan",
+  "/api/detect-rooms",
+  "/api/extract-room-crops"
+]);
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -6,8 +13,27 @@ export default {
       return withCors(new Response(null, { status: 204 }));
     }
 
-    if (url.pathname !== "/api/analyze") {
+    if (!url.pathname.startsWith("/api/")) {
       return env.ASSETS.fetch(request);
+    }
+
+    if (url.pathname === "/api/upload-floor-plan") {
+      return withCors(json({
+        ok: true,
+        message: "Upload is handled by the multipart /api/analyze-floor-plan request in this prototype."
+      }));
+    }
+
+    if (!ANALYZE_PATHS.has(url.pathname)) {
+      return withCors(json({
+        error: "Unknown API endpoint.",
+        endpoints: [
+          "POST /api/upload-floor-plan",
+          "POST /api/analyze-floor-plan",
+          "POST /api/detect-rooms",
+          "POST /api/extract-room-crops"
+        ]
+      }, 404));
     }
 
     if (request.method !== "POST") {
@@ -42,7 +68,7 @@ export default {
 
       const fileBytes = await file.arrayBuffer();
       const base64 = arrayBufferToBase64(fileBytes);
-      const model = payload?.ai?.modelName || env.GEMINI_MODEL || "gemini-3.5-flash";
+      const model = chooseModel(payload, env);
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`;
       const prompt = buildPrompt(payload, fileName, mimeType);
 
@@ -51,14 +77,14 @@ export default {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           contents: [{
-            role: "user",
             parts: [
               { text: prompt },
-              { inlineData: { mimeType, data: base64 } }
+              { inline_data: { mime_type: mimeType, data: base64 } }
             ]
           }],
           generationConfig: {
-            responseMimeType: "application/json"
+            response_mime_type: "application/json",
+            temperature: 0.1
           }
         })
       });
@@ -80,61 +106,67 @@ export default {
   }
 };
 
+function chooseModel(payload, env) {
+  return (payload?.ai?.modelName || env.GEMINI_MODEL || "gemini-3.5-flash").trim();
+}
+
 function buildPrompt(payload, fileName, mimeType) {
   const language = payload.language === "zh" ? "Chinese" : "English";
   return `
-You are an AI assistant for a tiling contractor estimation prototype.
+You are a construction-estimation vision assistant for a Malaysian tiling contractor.
 
-Analyze the uploaded drawing file and return ONLY valid JSON.
-Response language: ${language}.
+Analyze the uploaded floor plan image/PDF and return ONLY valid JSON. Do not wrap it in markdown.
+Response language for summary, roomName and aiWarning: ${language}.
+
+Important honesty rules:
+- Use the actual uploaded drawing only. Do not return template/sample/fake rooms.
+- If the drawing contains printed area labels such as "7.8m²", prefer those labels over guessing from pixels.
+- If scale, boundaries, or room labels are unclear, lower confidence and explain the uncertainty in aiWarning.
+- Do not invent high precision. Use 1-2 decimal places for areas.
+- Bounding boxes may be approximate, but must be normalized to the uploaded image/page: x/y/width/height from 0 to 1.
 
 File:
 - name: ${fileName}
 - mime type: ${mimeType}
 
-Project:
+Project context:
 ${JSON.stringify(payload.project || {}, null, 2)}
 
-Site conditions:
-${JSON.stringify(payload.site || {}, null, 2)}
-
-Weather context:
-${JSON.stringify(payload.weather || {}, null, 2)}
-
-Estimation settings:
+Material settings:
 ${JSON.stringify(payload.settings || {}, null, 2)}
 
-Return this JSON structure:
+Labour and risk context:
+${JSON.stringify({ labour: payload.labour || {}, risk: payload.risk || {} }, null, 2)}
+
+Return exactly this JSON object:
 {
-  "summary": "short summary for contractor",
+  "summary": "short contractor-facing summary",
   "rooms": [
     {
-      "name": "Living Room",
-      "room_type": "Living",
-      "shape": "rectangle | l-shape | irregular",
-      "area": 20.5,
-      "gross_area_m2": 20.5,
-      "deduction_area_m2": 0,
-      "net_area_m2": 20.5,
-      "confidence": 0.0,
-      "warnings": ["scale unclear"]
+      "roomName": "Living / Dining",
+      "roomType": "Living Room | Bedroom | Kitchen | Bathroom | Corridor | Balcony | Office | Other",
+      "shapeType": "Rectangle | Column Cutout | L-Shape | U-Shape | Polygon | Hexagon | Hollow Area | Manual Area",
+      "grossArea": 24.1,
+      "deductedArea": 0,
+      "netArea": 24.1,
+      "confidence": 0,
+      "bbox": { "x": 0.10, "y": 0.20, "width": 0.30, "height": 0.40, "unit": "ratio" },
+      "obstacles": [
+        { "type": "Column | Void Area | Staircase | Fixed Cabinet | Island Counter | Other Obstacle", "area": 0.35 }
+      ],
+      "aiWarning": "manual verification needed when dimensions are unclear"
     }
   ],
-  "drawing_warnings": ["missing scale"],
-  "workflow_notes": ["manual review required before ordering"],
-  "material_notes": ["increase waste for diagonal or complex layout"],
-  "weather_notes": ["outdoor work should be delayed if heavy rain is forecast"]
+  "drawingWarnings": ["missing scale"],
+  "workflowNotes": ["import detected rooms and manually correct before quotation"]
 }
 
-Rules:
-- Classify each room shape as "rectangle", "l-shape", or "irregular".
-- For irregular / non-rectangular / polygon rooms, do NOT force a rectangle. Set shape to "irregular" and measure the actual floor polygon as accurately as the drawing allows, reporting it in "net_area_m2" (and the same value in "area").
-- Always report "net_area_m2" = floor tiling area AFTER subtracting columns, voids, fixed cabinets, and stairs ("deduction_area_m2"). "gross_area_m2" is before deductions. Set "area" equal to "net_area_m2".
-- For irregular rooms, lower the confidence and add a warning that the area was measured from an irregular shape and should be verified on site.
-- If dimensions or scale are unclear, estimate conservatively and lower confidence.
-- Never invent high confidence for unreadable dimensions.
-- Flag missing scale, unclear room boundaries, columns, voids, stairs, built-in cabinets, wet areas, and outdoor/weather exposure.
-- Keep rooms editable by humans.
+Area logic:
+- grossArea is the full room floor area before obstacle deductions.
+- deductedArea is the total of columns, voids, fixed cabinets, stairs, islands or non-tiled areas.
+- netArea = grossArea - deductedArea.
+- If skirting is visible or required, mention it in aiWarning, but do not add it into floor netArea.
+- For irregular rooms, use Polygon and reduce confidence.
 `;
 }
 
@@ -142,28 +174,60 @@ function normalizeResponse(data, rawText) {
   const rooms = Array.isArray(data.rooms) ? data.rooms : [];
   return {
     summary: data.summary || "Gemini analysis completed.",
-    rooms: rooms.map((room, index) => {
-      const gross = Number(room.gross_area_m2 ?? room.area ?? room.net_area_m2 ?? 0);
-      const deduction = Number(room.deduction_area_m2 ?? 0);
-      // Prefer an explicit net area; otherwise derive it from gross minus deductions.
-      const net = Number(room.net_area_m2 ?? Math.max(0, gross - deduction) ?? room.area ?? 0);
-      return {
-        name: room.name || room.room_name || `Room ${index + 1}`,
-        room_type: room.room_type || room.roomType || "Other",
-        shape: room.shape || "manual",
-        area: net,
-        gross_area_m2: gross,
-        deduction_area_m2: deduction,
-        net_area_m2: net,
-        confidence: Number(room.confidence ?? room.confidence_score ?? 0.5),
-        warnings: Array.isArray(room.warnings) ? room.warnings : []
-      };
-    }),
-    drawing_warnings: data.drawing_warnings || [],
-    workflow_notes: data.workflow_notes || [],
-    material_notes: data.material_notes || [],
-    weather_notes: data.weather_notes || [],
+    rooms: rooms.map((room, index) => normalizeRoom(room, index)),
+    drawingWarnings: data.drawingWarnings || data.drawing_warnings || [],
+    workflowNotes: data.workflowNotes || data.workflow_notes || [],
+    materialNotes: data.materialNotes || data.material_notes || [],
+    weatherNotes: data.weatherNotes || data.weather_notes || [],
     raw: rawText
+  };
+}
+
+function normalizeRoom(room, index) {
+  const gross = safeNumber(room.grossArea ?? room.gross_area_m2 ?? room.area ?? room.netArea ?? room.net_area_m2, 0);
+  const deduction = safeNumber(room.deductedArea ?? room.deduction_area_m2 ?? room.deducted_area, 0);
+  const net = safeNumber(room.netArea ?? room.net_area_m2 ?? room.area, Math.max(0, gross - deduction));
+  const confidenceRaw = safeNumber(room.confidence ?? room.confidence_score, 0);
+  const confidence = confidenceRaw <= 1 ? confidenceRaw * 100 : confidenceRaw;
+  const warnings = [
+    ...(Array.isArray(room.warnings) ? room.warnings : []),
+    room.aiWarning || room.ai_warning || ""
+  ].filter(Boolean);
+
+  return {
+    roomName: room.roomName || room.room_name || room.name || `Room ${index + 1}`,
+    roomType: room.roomType || room.room_type || "Other",
+    shapeType: room.shapeType || room.shape_type || room.shape || "Manual Area",
+    grossArea: roundArea(gross),
+    deductedArea: roundArea(deduction),
+    netArea: roundArea(net),
+    confidence: Math.max(0, Math.min(100, confidence)),
+    bbox: normalizeBBox(room.bbox || room.boundingBox || room.bounding_box),
+    obstacles: Array.isArray(room.obstacles) ? room.obstacles.map(normalizeObstacle) : [],
+    aiWarning: warnings.join(" ")
+  };
+}
+
+function normalizeObstacle(obstacle) {
+  return {
+    type: obstacle.type || obstacle.obstacleType || "Other Obstacle",
+    area: roundArea(safeNumber(obstacle.area ?? obstacle.area_m2, 0))
+  };
+}
+
+function normalizeBBox(bbox) {
+  if (!bbox) return null;
+  const x = safeNumber(bbox.x ?? bbox.left ?? bbox.x1, 0);
+  const y = safeNumber(bbox.y ?? bbox.top ?? bbox.y1, 0);
+  const width = safeNumber(bbox.width ?? bbox.w ?? ((bbox.x2 ?? bbox.right) - x), 0);
+  const height = safeNumber(bbox.height ?? bbox.h ?? ((bbox.y2 ?? bbox.bottom) - y), 0);
+  if (width <= 0 || height <= 0) return null;
+  return {
+    x: clamp01(x),
+    y: clamp01(y),
+    width: clamp01(width),
+    height: clamp01(height),
+    unit: bbox.unit || "ratio"
   };
 }
 
@@ -181,7 +245,7 @@ function parseGeminiJson(text) {
 
 function supportedByGemini(mimeType, fileName) {
   const lower = fileName.toLowerCase();
-  if (/(\.dwg|\.dxf|\.ifc|\.rvt|\.skp)$/.test(lower)) return false;
+  if (/(\.dwg|\.dxf|\.ifc|\.rvt|\.skp|\.cad)$/.test(lower)) return false;
   return [
     "application/pdf",
     "image/png",
@@ -212,6 +276,19 @@ function arrayBufferToBase64(buffer) {
   return btoa(binary);
 }
 
+function safeNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function roundArea(value) {
+  return Math.round(safeNumber(value) * 100) / 100;
+}
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, safeNumber(value)));
+}
+
 function json(value, status = 200) {
   return new Response(JSON.stringify(value, null, 2), {
     status,
@@ -222,7 +299,7 @@ function json(value, status = 200) {
 function withCors(response) {
   const headers = new Headers(response.headers);
   headers.set("access-control-allow-origin", "*");
-  headers.set("access-control-allow-methods", "POST, OPTIONS");
+  headers.set("access-control-allow-methods", "GET, POST, OPTIONS");
   headers.set("access-control-allow-headers", "content-type");
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
