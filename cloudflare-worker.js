@@ -117,6 +117,7 @@ You are a construction-estimation vision assistant for a Malaysian tiling contra
 
 Analyze the uploaded floor plan image/PDF and return ONLY valid JSON. Do not wrap it in markdown.
 Response language for summary, roomName and aiWarning: ${language}.
+If response language is Chinese, do not return English room names or English aiWarning text unless it is a technical file name or drawing label.
 
 Important honesty rules:
 - Use the actual uploaded drawing only. Do not return template/sample/fake rooms.
@@ -232,11 +233,13 @@ function normalizeBBox(bbox) {
   const width = safeNumber(bbox.width ?? bbox.w ?? ((bbox.x2 ?? bbox.right) - x), 0);
   const height = safeNumber(bbox.height ?? bbox.h ?? ((bbox.y2 ?? bbox.bottom) - y), 0);
   if (width <= 0 || height <= 0) return null;
+  const safeX = clamp01(x);
+  const safeY = clamp01(y);
   return {
-    x: clamp01(x),
-    y: clamp01(y),
-    width: clamp01(width),
-    height: clamp01(height),
+    x: safeX,
+    y: safeY,
+    width: Math.min(clamp01(width), Math.max(0.001, 1 - safeX)),
+    height: Math.min(clamp01(height), Math.max(0.001, 1 - safeY)),
     unit: bbox.unit || "ratio"
   };
 }
